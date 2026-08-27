@@ -1,69 +1,185 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useStore } from "@/store/useStore";
+import { format } from "date-fns";
+import { CheckCircle2, Circle, Flame, ArrowRight, Play, Trophy, Brain } from "lucide-react";
+import { useState, useEffect } from "react";
+import { getMe, getFriends } from "@/lib/api";
+
+export default function DashboardPage() {
+  const storeUser = useStore((state) => state.currentUser);
+  const storeFriends = useStore((state) => state.friends);
+  
+  const [liveUser, setLiveUser] = useState<any>(storeUser);
+  const [liveFriends, setLiveFriends] = useState<any[]>(storeFriends);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const today = new Date();
+  const USER_ID = 1; // Default for prototype
+
+  useEffect(() => {
+    const fetchLiveDashboard = async () => {
+      try {
+        const user = await getMe(USER_ID);
+        setLiveUser(user);
+        
+        const friends = await getFriends(USER_ID);
+        setLiveFriends(friends);
+      } catch (e) {
+        // Fallback to mock store if backend offline
+        setLiveUser(storeUser);
+        setLiveFriends(storeFriends);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchLiveDashboard();
+  }, [storeUser, storeFriends]);
+
+  if (isLoading || !liveUser) return null;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="space-y-12 animate-in fade-in duration-700">
+      
+      {/* Header Context */}
+      <header className="space-y-1">
+        <h1 className="text-3xl font-medium tracking-tight text-white">
+          {format(today, "EEEE, MMMM d")}
+        </h1>
+        <p className="text-[var(--color-muted-foreground)] flex items-center gap-2">
+          Your <span className="font-medium text-white">{liveUser.streak}th</span> consecutive day.
+          <Flame className="w-4 h-4 text-[var(--color-accent)]" />
+        </p>
+      </header>
+
+      {/* Today's Workspace */}
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* Left Column: Today's Action */}
+        <div className="lg:col-span-2 space-y-8">
+          
+          <div className="space-y-4">
+            <div className="flex items-end justify-between">
+              <h2 className="text-lg font-medium text-white">Total Experience (XP)</h2>
+              <div className="text-right">
+                <span className="text-2xl font-medium text-[var(--color-accent)]">{liveUser.total_xp || liveUser.totalXp}</span>
+                <span className="text-[var(--color-muted-foreground)] ml-2 text-sm">XP</span>
+              </div>
+            </div>
+            
+            <div className="h-2 w-full bg-[var(--color-border)] rounded-full overflow-hidden">
+              <div className="h-full bg-[var(--color-accent)] rounded-full transition-all duration-1000" style={{ width: `${Math.min(((liveUser.total_xp || liveUser.totalXp) / 5000) * 100, 100)}%` }} />
+            </div>
+          </div>
+
+          <div className="glass-panel rounded-lg p-6 space-y-6">
+            <h3 className="font-medium text-white text-lg">What are you learning today?</h3>
+            
+            <div className="space-y-3">
+              {[
+                { label: "Understand React's rendering model", done: true },
+                { label: "Build custom hooks for data fetching", done: false },
+                { label: "Complete 2 Leetcode algorithms", done: false },
+              ].map((task, i) => (
+                <div key={i} className="flex items-start gap-3 group cursor-pointer hover:bg-[var(--color-surface-hover)] p-2 rounded-md transition-colors">
+                  {task.done ? (
+                    <CheckCircle2 className="w-5 h-5 text-[var(--color-success)] shrink-0 mt-0.5" />
+                  ) : (
+                    <Circle className="w-5 h-5 text-[var(--color-muted)] group-hover:text-white transition-colors shrink-0 mt-0.5" />
+                  )}
+                  <span className={`text-sm ${task.done ? 'text-[var(--color-muted-foreground)] line-through' : 'text-[var(--color-foreground)]'}`}>
+                    {task.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <button 
+              onClick={() => window.location.href = '/learning'}
+              className="w-full flex items-center justify-center gap-2 py-3 bg-[var(--color-surface-hover)] hover:bg-[var(--color-border)] text-white text-sm font-medium rounded-md transition-colors"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              Log Today's Learning
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Activity Heatmap Mock */}
+          <div className="pt-4">
+            <h3 className="text-sm font-medium text-[var(--color-muted-foreground)] uppercase tracking-wider mb-4">Consistency</h3>
+            <div className="flex gap-1 overflow-hidden">
+              {Array.from({ length: 28 }).map((_, i) => {
+                const intensity = Math.random();
+                let bgClass = "bg-[var(--color-surface)]";
+                if (intensity > 0.8) bgClass = "bg-[var(--color-accent)]";
+                else if (intensity > 0.5) bgClass = "bg-[var(--color-accent)] opacity-60";
+                else if (intensity > 0.2) bgClass = "bg-[var(--color-accent)] opacity-30";
+                
+                return (
+                  <div 
+                    key={i} 
+                    className={`w-3 h-3 rounded-sm ${bgClass}`}
+                    title="Activity detail"
+                  />
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Context & Competition */}
+        <div className="space-y-8">
+          
+          {/* Upcoming Test Context */}
+          <div className="border border-[var(--color-border)] rounded-lg p-5 hover:border-[var(--color-accent)] transition-colors">
+            <h3 className="text-xs font-medium text-[var(--color-muted-foreground)] uppercase tracking-wider mb-4">Upcoming</h3>
+            <div className="space-y-1 mb-4">
+              <div className="font-medium text-white">Weekly Knowledge Interview</div>
+              <div className="text-sm text-[var(--color-muted-foreground)]">Available Now</div>
+            </div>
+            <button 
+              onClick={() => window.location.href = '/test'}
+              className="w-full flex items-center justify-center gap-2 py-2 bg-[var(--color-accent)]/10 text-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-white text-sm font-medium rounded-md transition-colors border border-[var(--color-accent)]/20"
             >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              <Brain className="w-4 h-4 fill-current" />
+              Take AI Test
+            </button>
+          </div>
+
+          {/* Leaderboard Context */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xs font-medium text-[var(--color-muted-foreground)] uppercase tracking-wider">Top Friends</h3>
+              <span className="text-xs text-[var(--color-accent)]">Weekly</span>
+            </div>
+            
+            <div className="space-y-1">
+              {[...liveFriends].sort((a, b) => (b.total_xp || b.weeklyScore) - (a.total_xp || a.weeklyScore)).slice(0, 3).map((friend, i) => (
+                <div key={friend.id} className="flex items-center justify-between p-2 rounded-md hover:bg-[var(--color-surface-hover)] transition-colors">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-medium text-[var(--color-muted-foreground)] w-4">{`0${i + 1}`}</span>
+                    <span className="text-sm font-medium text-white">{friend.name}</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-medium">{friend.total_xp || friend.weeklyScore} XP</div>
+                  </div>
+                </div>
+              ))}
+              
+              <div className="flex items-center justify-between p-2 rounded-md bg-[var(--color-surface)] border border-[var(--color-border)] mt-2 cursor-pointer hover:bg-[var(--color-surface-hover)] transition-colors" onClick={() => window.location.href = '/leaderboard'}>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-medium text-[var(--color-accent)] w-4">--</span>
+                  <span className="text-sm font-medium text-white">You</span>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-medium text-[var(--color-accent)]">{liveUser.total_xp || liveUser.totalXp} XP</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      </section>
+      
     </div>
   );
 }
