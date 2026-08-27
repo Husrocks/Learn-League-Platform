@@ -20,6 +20,8 @@ export type User = {
   longest_streak: number;
   total_xp: number;
   learning_goal: string;
+  weekly_score?: number;
+  hours_studied_this_week?: number;
   tasks?: Task[];
 };
 
