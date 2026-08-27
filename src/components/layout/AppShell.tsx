@@ -30,7 +30,10 @@ const NAV_ITEMS = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { currentUser } = useStore();
+  const { currentUser, initAuth } = useStore();
+
+  // Restore JWT session from localStorage on page load
+  useEffect(() => { initAuth(); }, [initAuth]);
 
   useEffect(() => {
     const isPublicRoute = pathname.startsWith("/auth") || pathname.startsWith("/onboarding") || pathname === "/welcome";

@@ -31,16 +31,18 @@ export type Friend = User & {
 
 type Store = {
   currentUser: User | null;
+  token: string | null;
   friends: Friend[];
   notifications: string[];
-  
+
   // Setters
   setCurrentUser: (user: User | null) => void;
   setFriends: (friends: Friend[]) => void;
-  
+
   // Actions
-  login: (email: string, password?: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  initAuth: () => Promise<void>;
   addFriend: (friendEmail: string) => Promise<void>;
   removeFriend: (id: number) => Promise<void>;
   assignTask: (userId: number, title: string) => Promise<void>;
@@ -51,22 +53,43 @@ type Store = {
 
 export const useStore = create<Store>((set, get) => ({
   currentUser: null,
+  token: null,
   friends: [],
   notifications: [],
-  
+
   setCurrentUser: (user) => set({ currentUser: user }),
   setFriends: (friends) => set({ friends }),
 
   login: async (email, password) => {
-    const user = await api.login(email, password);
-    set({ currentUser: user });
-    if (user.id) {
+    const data = await api.login(email, password);
+    // data = { access_token, token_type, user }
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ll_token', data.access_token);
+    }
+    set({ currentUser: data.user, token: data.access_token });
+    get().fetchFriends();
+  },
+
+  logout: () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('ll_token');
+    }
+    set({ currentUser: null, friends: [], token: null });
+  },
+
+  initAuth: async () => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('ll_token') : null;
+    if (!token) return;
+    try {
+      const user = await api.getMe();
+      set({ currentUser: user, token });
       get().fetchFriends();
+    } catch {
+      if (typeof window !== 'undefined') localStorage.removeItem('ll_token');
+      set({ currentUser: null, token: null });
     }
   },
-  
-  logout: () => set({ currentUser: null, friends: [] }),
-  
+
   fetchFriends: async () => {
     const { currentUser } = get();
     if (!currentUser) return;
@@ -80,39 +103,37 @@ export const useStore = create<Store>((set, get) => ({
     await api.addFriend(currentUser.id, friendEmail);
     get().fetchFriends();
   },
-  
+
   removeFriend: async (id) => {
     const { currentUser } = get();
     if (!currentUser) return;
     await api.removeFriend(currentUser.id, id);
     get().fetchFriends();
   },
-  
+
   assignTask: async (userId, title) => {
     const { currentUser } = get();
     if (!currentUser) return;
     await api.assignTask(userId, { title, assigned_by: currentUser.name });
-    
-    // Refresh data
+
     if (userId === currentUser.id) {
-      const refreshedUser = await api.getMe(currentUser.id);
+      const refreshedUser = await api.getMe();
       set({ currentUser: refreshedUser });
     } else {
       get().fetchFriends();
     }
   },
-  
+
   reviewTask: async (userId, taskId) => {
     await api.reviewTask(taskId);
     get().fetchFriends();
   },
-  
+
   completeTask: async (taskId) => {
     const { currentUser } = get();
     if (!currentUser) return;
     await api.completeTask(taskId);
-    
-    const refreshedUser = await api.getMe(currentUser.id);
+    const refreshedUser = await api.getMe();
     set({ currentUser: refreshedUser });
   }
 }));
