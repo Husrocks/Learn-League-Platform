@@ -113,7 +113,7 @@ export default function LeaderboardPage() {
           <div className="pt-6 border-t border-[var(--color-border)] text-center">
             <p className="text-sm text-[var(--color-muted-foreground)]">
               You're <span className="text-white font-medium">
-                {((allUsers[userRankIndex - 1].total_xp || allUsers[userRankIndex - 1].weekly_score) - (currentUser.total_xp || currentUser.weekly_score)).toFixed(1)} points
+                {((allUsers[userRankIndex - 1].total_xp || allUsers[userRankIndex - 1].weekly_score || 0) - (currentUser.total_xp || currentUser.weekly_score || 0)).toFixed(1)} points
               </span> away from #{userRankIndex}.
             </p>
           </div>
