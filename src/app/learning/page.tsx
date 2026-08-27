@@ -31,7 +31,8 @@ export default function LearningLogPage() {
     const totalHours = (parseFloat(hours) || 0) + ((parseFloat(minutes) || 0) / 60);
     
     try {
-      await logDailyLearning(USER_ID, totalHours, topics, reflection, tasks);
+      const apiTasks = tasks.map(t => ({ title: t.label, status: t.done ? "completed" : "pending" }));
+      await logDailyLearning(USER_ID, totalHours, topics, reflection, apiTasks);
       setSuccess(true);
     } catch (e) {
       console.error(e);

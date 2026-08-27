@@ -20,7 +20,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchLiveDashboard = async () => {
       try {
-        const user = await getMe(USER_ID);
+        const user = await getMe();
         setLiveUser(user);
         
         const friends = await getFriends(USER_ID);
