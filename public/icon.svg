@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Background -->
+  <rect width="32" height="32" rx="8" fill="#0f172a"/>
+  
+  <!-- Trophy body -->
+  <path d="M10 6h12v10c0 4.418-2.686 8-6 8s-6-3.582-6-8V6z" fill="url(#gold)"/>
+  
+  <!-- Trophy handles -->
+  <path d="M10 9H7a3 3 0 000 6h3" stroke="url(#gold)" stroke-width="1.5" fill="none"/>
+  <path d="M22 9h3a3 3 0 010 6h-3" stroke="url(#gold)" stroke-width="1.5" fill="none"/>
+  
+  <!-- Trophy stem -->
+  <rect x="14" y="24" width="4" height="2" fill="url(#gold)"/>
+  
+  <!-- Trophy base -->
+  <rect x="11" y="26" width="10" height="2" rx="1" fill="url(#gold)"/>
+  
+  <!-- Lightning bolt -->
+  <path d="M17.5 9l-3 5h2.5l-1.5 5 4-6h-2.5l1.5-4z" fill="#0f172a" opacity="0.85"/>
+  
+  <defs>
+    <linearGradient id="gold" x1="10" y1="6" x2="22" y2="28" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+  </defs>
+</svg>
