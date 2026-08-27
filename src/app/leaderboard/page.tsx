@@ -21,7 +21,7 @@ export default function LeaderboardPage() {
         // Fallback to mock data if backend not running
         const friends = useStore.getState().friends;
         const users = currentUser ? [currentUser, ...friends] : friends;
-        setLeaderboardUsers(users.sort((a, b) => (b?.weeklyScore || 0) - (a?.weeklyScore || 0)));
+        setLeaderboardUsers(users.sort((a, b) => (b?.weekly_score || 0) - (a?.weekly_score || 0)));
       } finally {
         setIsLoading(false);
       }
@@ -88,11 +88,11 @@ export default function LeaderboardPage() {
                 <div className="flex-1 flex items-center gap-6 ml-4">
                   <div className="w-48">
                     <span className="text-lg font-medium text-white block">{isMe ? "You" : user.name}</span>
-                    <span className="text-xs text-[var(--color-muted-foreground)]">{user.learning_goal || user.learningGoal || "General"}</span>
+                    <span className="text-xs text-[var(--color-muted-foreground)]">{user.learning_goal || "General"}</span>
                   </div>
                   
                   <div className="w-24 text-right">
-                    <span className="text-xl font-medium text-white block">{user.total_xp || user.weeklyScore}</span>
+                    <span className="text-xl font-medium text-white block">{user.total_xp || user.weekly_score}</span>
                     <span className="text-xs text-[var(--color-muted-foreground)] uppercase tracking-wider">Score</span>
                   </div>
 
@@ -113,7 +113,7 @@ export default function LeaderboardPage() {
           <div className="pt-6 border-t border-[var(--color-border)] text-center">
             <p className="text-sm text-[var(--color-muted-foreground)]">
               You're <span className="text-white font-medium">
-                {((allUsers[userRankIndex - 1].totalXp || allUsers[userRankIndex - 1].weeklyScore) - (currentUser.totalXp || currentUser.weeklyScore)).toFixed(1)} points
+                {((allUsers[userRankIndex - 1].total_xp || allUsers[userRankIndex - 1].weekly_score) - (currentUser.total_xp || currentUser.weekly_score)).toFixed(1)} points
               </span> away from #{userRankIndex}.
             </p>
           </div>

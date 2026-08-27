@@ -30,7 +30,7 @@ export default function FriendsPage() {
           </div>
 
           <div className="space-y-6">
-            {friends.map((friend) => (
+            {friends.map((friend, i) => (
               <div key={friend.id} className="group">
                 <div className="flex items-start justify-between py-4 border-b border-[var(--color-border)] group-last:border-0">
                   
@@ -49,22 +49,22 @@ export default function FriendsPage() {
                       </div>
                     </div>
                     <p className="text-sm text-[var(--color-muted-foreground)] ml-11">
-                      {friend.learningGoal}
+                      {friend.learning_goal}
                     </p>
                   </div>
 
                   {/* Stats Snippet */}
                   <div className="flex items-center gap-8 text-right">
                     <div>
-                      <div className="text-sm font-medium text-white">{friend.hoursStudiedThisWeek}h 40m</div>
+                      <div className="text-sm font-medium text-white">{friend.hours_studied_this_week}h 40m</div>
                       <div className="text-xs text-[var(--color-muted-foreground)]">This week</div>
                     </div>
                     <div>
-                      <div className="text-sm font-medium text-white">{friend.weeklyScore}</div>
+                      <div className="text-sm font-medium text-white">{friend.weekly_score}</div>
                       <div className="text-xs text-[var(--color-muted-foreground)]">Score</div>
                     </div>
                     <div>
-                      <div className="text-sm font-medium text-[var(--color-accent)]">#{friend.rank}</div>
+                      <div className="text-sm font-medium text-[var(--color-accent)]">#{i + 1}</div>
                       <div className="text-xs text-[var(--color-muted-foreground)]">Rank</div>
                     </div>
                   </div>

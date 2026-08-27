@@ -122,7 +122,7 @@ export default function SettingsPage() {
                 <label className="block text-xs font-medium text-[var(--color-muted-foreground)] uppercase tracking-wider mb-2">Learning Goal</label>
                 <input 
                   type="text" 
-                  defaultValue={currentUser.learningGoal}
+                  defaultValue={currentUser.learning_goal}
                   className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--color-accent)] text-white"
                 />
               </div>
