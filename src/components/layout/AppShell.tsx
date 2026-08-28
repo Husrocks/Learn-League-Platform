@@ -30,23 +30,27 @@ const NAV_ITEMS = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { currentUser, initAuth } = useStore();
+  const { currentUser, initAuth, isInitializing } = useStore();
 
   // Restore JWT session from localStorage on page load
   useEffect(() => { initAuth(); }, [initAuth]);
 
   useEffect(() => {
     const isPublicRoute = pathname.startsWith("/auth") || pathname.startsWith("/onboarding") || pathname === "/welcome";
-    if (!currentUser && !isPublicRoute) {
+    // Only redirect after auth initialization completes — prevents flash-to-login on hard refresh
+    if (!isInitializing && !currentUser && !isPublicRoute) {
       router.push("/auth/login");
     }
-  }, [currentUser, pathname, router]);
+  }, [isInitializing, currentUser, pathname, router]);
 
   // Onboarding or auth pages shouldn't have the shell
   if (pathname.startsWith("/auth") || pathname.startsWith("/onboarding") || pathname === "/welcome") {
     return <>{children}</>;
   }
   
+  // Wait for auth check to complete before deciding to show shell or redirect
+  if (isInitializing) return null;
+
   // Wait for redirect to happen
   if (!currentUser) return null;
 

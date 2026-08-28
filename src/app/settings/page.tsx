@@ -12,11 +12,18 @@ export default function SettingsPage() {
     removeFriend, 
     assignTask, 
     reviewTask,
-    logout
+    logout,
+    setCurrentUser
   } = useStore();
 
   const [activeTab, setActiveTab] = useState<"profile" | "admin">("profile");
   
+  // Profile form states
+  const [name, setName] = useState(currentUser?.name || "");
+  const [learningGoal, setLearningGoal] = useState(currentUser?.learning_goal || "");
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
+
   // Admin form states
   const [newFriendName, setNewFriendName] = useState("");
   const [newFriendEmail, setNewFriendEmail] = useState("");
@@ -47,6 +54,23 @@ export default function SettingsPage() {
       setNewTaskTitle("");
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    setSaveMessage("");
+    
+    try {
+      const { updateProfile } = await import("@/lib/api");
+      const updatedUser = await updateProfile({ name, learning_goal: learningGoal });
+      setCurrentUser(updatedUser);
+      setSaveMessage("Profile saved successfully.");
+    } catch (err: any) {
+      setSaveMessage(err.message || "Failed to save profile.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -100,13 +124,20 @@ export default function SettingsPage() {
         {/* Profile Settings */}
         {activeTab === "profile" && (
           <div className="space-y-8 max-w-xl">
-            <div className="space-y-4">
+            {saveMessage && (
+              <div className={`p-3 rounded-md text-sm border ${saveMessage.includes("success") ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-red-500/10 border-red-500/20 text-red-400"}`}>
+                {saveMessage}
+              </div>
+            )}
+            <form onSubmit={handleSaveProfile} className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-[var(--color-muted-foreground)] uppercase tracking-wider mb-2">Display Name</label>
                 <input 
                   type="text" 
-                  defaultValue={currentUser.name}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--color-accent)] text-white"
+                  required
                 />
               </div>
               <div>
@@ -122,17 +153,21 @@ export default function SettingsPage() {
                 <label className="block text-xs font-medium text-[var(--color-muted-foreground)] uppercase tracking-wider mb-2">Learning Goal</label>
                 <input 
                   type="text" 
-                  defaultValue={currentUser.learning_goal}
+                  value={learningGoal}
+                  onChange={(e) => setLearningGoal(e.target.value)}
                   className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--color-accent)] text-white"
+                  required
                 />
               </div>
-            </div>
-            
-            <button 
-              className="bg-white text-black font-medium px-6 py-2.5 rounded-md text-sm hover:bg-gray-200 transition-colors"
-            >
-              Save Changes
-            </button>
+              
+              <button 
+                type="submit"
+                disabled={isSaving}
+                className="bg-white text-black font-medium px-6 py-2.5 rounded-md text-sm hover:bg-gray-200 transition-colors disabled:opacity-50"
+              >
+                {isSaving ? "Saving..." : "Save Changes"}
+              </button>
+            </form>
             
             <div className="pt-10 border-t border-[var(--color-border)]">
               <button 

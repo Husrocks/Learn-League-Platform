@@ -3,7 +3,7 @@
 import { useStore } from "@/store/useStore";
 import { format } from "date-fns";
 import { CheckCircle2, Circle, Flame, ArrowRight, Play, Trophy, Brain } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { getMe, getFriends } from "@/lib/api";
 
 export default function DashboardPage() {
@@ -15,15 +15,15 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   const today = new Date();
-  const USER_ID = 1; // Default for prototype
 
   useEffect(() => {
     const fetchLiveDashboard = async () => {
       try {
         const user = await getMe();
         setLiveUser(user);
-        
-        const friends = await getFriends(USER_ID);
+
+        // T10: use the real authenticated user's ID, not a hardcoded 1
+        const friends = await getFriends(user.id);
         setLiveFriends(friends);
       } catch (e) {
         // Fallback to mock store if backend offline
@@ -35,6 +35,17 @@ export default function DashboardPage() {
     };
     fetchLiveDashboard();
   }, [storeUser, storeFriends]);
+
+  const heatmapData = useMemo(() => {
+    return Array.from({ length: 28 }).map(() => {
+      const intensity = Math.random();
+      let bgClass = "bg-[var(--color-surface)]";
+      if (intensity > 0.8) bgClass = "bg-[var(--color-accent)]";
+      else if (intensity > 0.5) bgClass = "bg-[var(--color-accent)] opacity-60";
+      else if (intensity > 0.2) bgClass = "bg-[var(--color-accent)] opacity-30";
+      return bgClass;
+    });
+  }, []);
 
   if (isLoading || !liveUser) return null;
 
@@ -107,21 +118,13 @@ export default function DashboardPage() {
           <div className="pt-4">
             <h3 className="text-sm font-medium text-[var(--color-muted-foreground)] uppercase tracking-wider mb-4">Consistency</h3>
             <div className="flex gap-1 overflow-hidden">
-              {Array.from({ length: 28 }).map((_, i) => {
-                const intensity = Math.random();
-                let bgClass = "bg-[var(--color-surface)]";
-                if (intensity > 0.8) bgClass = "bg-[var(--color-accent)]";
-                else if (intensity > 0.5) bgClass = "bg-[var(--color-accent)] opacity-60";
-                else if (intensity > 0.2) bgClass = "bg-[var(--color-accent)] opacity-30";
-                
-                return (
-                  <div 
-                    key={i} 
-                    className={`w-3 h-3 rounded-sm ${bgClass}`}
-                    title="Activity detail"
-                  />
-                );
-              })}
+              {heatmapData.map((bgClass, i) => (
+                <div 
+                  key={i} 
+                  className={`w-3 h-3 rounded-sm ${bgClass}`}
+                  title="Activity detail"
+                />
+              ))}
             </div>
           </div>
         </div>

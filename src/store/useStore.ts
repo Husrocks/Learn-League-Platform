@@ -34,6 +34,7 @@ type Store = {
   token: string | null;
   friends: Friend[];
   notifications: string[];
+  isInitializing: boolean;
 
   // Setters
   setCurrentUser: (user: User | null) => void;
@@ -56,6 +57,7 @@ export const useStore = create<Store>((set, get) => ({
   token: null,
   friends: [],
   notifications: [],
+  isInitializing: true,
 
   setCurrentUser: (user) => set({ currentUser: user }),
   setFriends: (friends) => set({ friends }),
@@ -78,8 +80,12 @@ export const useStore = create<Store>((set, get) => ({
   },
 
   initAuth: async () => {
+    set({ isInitializing: true });
     const token = typeof window !== 'undefined' ? localStorage.getItem('ll_token') : null;
-    if (!token) return;
+    if (!token) {
+      set({ isInitializing: false });
+      return;
+    }
     try {
       const user = await api.getMe();
       set({ currentUser: user, token });
@@ -87,6 +93,8 @@ export const useStore = create<Store>((set, get) => ({
     } catch {
       if (typeof window !== 'undefined') localStorage.removeItem('ll_token');
       set({ currentUser: null, token: null });
+    } finally {
+      set({ isInitializing: false });
     }
   },
 

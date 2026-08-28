@@ -18,26 +18,28 @@ export default function LearningLogPage() {
   const [topics, setTopics] = useState("React, Performance");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Default USER_ID for prototype
-  const USER_ID = 1;
+  // T10: removed hardcoded USER_ID = 1; use authenticated user's real ID
 
   const toggleTask = (id: number) => {
     setTasks(tasks.map(t => t.id === id ? { ...t, done: !t.done } : t));
   };
 
   const handleSubmit = async () => {
+    if (!currentUser) return;
     setIsSubmitting(true);
+    setSubmitError(null);
     const totalHours = (parseFloat(hours) || 0) + ((parseFloat(minutes) || 0) / 60);
-    
+
     try {
       const apiTasks = tasks.map(t => ({ title: t.label, status: t.done ? "completed" : "pending" }));
-      await logDailyLearning(USER_ID, totalHours, topics, reflection, apiTasks);
+      // T10: use currentUser.id, not the removed hardcoded USER_ID = 1
+      await logDailyLearning(currentUser.id, totalHours, topics, reflection, apiTasks);
       setSuccess(true);
     } catch (e) {
-      console.error(e);
-      alert("Failed to submit (Backend unreachable). Simulating success anyway.");
-      setSuccess(true);
+      // T13: surface the real error to the user instead of silently faking success
+      setSubmitError((e as Error).message || "Failed to submit. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -156,10 +158,15 @@ export default function LearningLogPage() {
         </div>
 
         {/* Submit */}
-        <div className="pt-6">
-          <button 
+        <div className="pt-6 space-y-3">
+          {submitError && (
+            <div className="px-4 py-3 rounded-md bg-red-500/10 border border-red-500/20 text-sm text-red-400">
+              {submitError}
+            </div>
+          )}
+          <button
             onClick={handleSubmit}
-            disabled={isSubmitting}
+            disabled={isSubmitting || !currentUser}
             className="w-full bg-white text-black text-lg font-medium py-4 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
           >
             {isSubmitting ? "Logging..." : `Complete Day ${currentUser?.streak}`}

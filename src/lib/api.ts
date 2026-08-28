@@ -12,15 +12,41 @@ function authHeaders(): Record<string, string> {
     : { "Content-Type": "application/json" };
 }
 
+/**
+ * Shared response handler — extracts FastAPI's `detail` field from error
+ * responses so the UI always shows the real reason (e.g. "Email already
+ * registered") instead of a hardcoded generic message.
+ */
+async function handleResponse<T = any>(res: Response): Promise<T> {
+  if (!res.ok) {
+    let detail = `Request failed (HTTP ${res.status})`;
+    try {
+      const body = await res.json();
+      if (body?.detail) {
+        detail =
+          typeof body.detail === "string"
+            ? body.detail
+            : JSON.stringify(body.detail);
+      } else if (body?.message) {
+        detail = body.message;
+      }
+    } catch {
+      // Response body was not JSON — keep the default message
+    }
+    throw new Error(detail);
+  }
+  return res.json() as Promise<T>;
+}
+
 // --- Auth Endpoints ---
 
 export async function login(email: string, password: string) {
-  const res = await fetch(
-    `${API_URL}/auth/login?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`,
-    { method: "POST" }
-  );
-  if (!res.ok) throw new Error("Incorrect email or password");
-  return res.json(); // { access_token, token_type, user }
+  const res = await fetch(`${API_URL}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  return handleResponse(res); // { access_token, token_type, user }
 }
 
 export async function register(userData: {
@@ -35,26 +61,38 @@ export async function register(userData: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(userData),
   });
-  if (!res.ok) throw new Error("Failed to register");
-  return res.json();
+  return handleResponse(res);
 }
 
 export async function getMe() {
   const res = await fetch(`${API_URL}/auth/me`, { headers: authHeaders() });
-  if (!res.ok) throw new Error("Failed to fetch user");
-  return res.json();
+  return handleResponse(res);
+}
+
+export async function updateProfile(data: {
+  name?: string;
+  learning_goal?: string;
+}) {
+  const res = await fetch(`${API_URL}/auth/me`, {
+    method: "PATCH",
+    headers: authHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res);
 }
 
 // --- Tasks Endpoints ---
 
-export async function assignTask(userId: number | string, taskData: { title: string; assigned_by: string }) {
+export async function assignTask(
+  userId: number | string,
+  taskData: { title: string; assigned_by: string }
+) {
   const res = await fetch(`${API_URL}/tasks/${userId}/assign`, {
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify(taskData),
   });
-  if (!res.ok) throw new Error("Failed to assign task");
-  return res.json();
+  return handleResponse(res);
 }
 
 export async function completeTask(taskId: number | string) {
@@ -62,8 +100,7 @@ export async function completeTask(taskId: number | string) {
     method: "PUT",
     headers: authHeaders(),
   });
-  if (!res.ok) throw new Error("Failed to complete task");
-  return res.json();
+  return handleResponse(res);
 }
 
 export async function reviewTask(taskId: number | string) {
@@ -71,22 +108,23 @@ export async function reviewTask(taskId: number | string) {
     method: "PUT",
     headers: authHeaders(),
   });
-  if (!res.ok) throw new Error("Failed to review task");
-  return res.json();
+  return handleResponse(res);
 }
 
 // --- Social Endpoints ---
 
 export async function getLeaderboard() {
-  const res = await fetch(`${API_URL}/social/leaderboard`, { headers: authHeaders() });
-  if (!res.ok) throw new Error("Failed to fetch leaderboard");
-  return res.json();
+  const res = await fetch(`${API_URL}/social/leaderboard`, {
+    headers: authHeaders(),
+  });
+  return handleResponse(res);
 }
 
 export async function getFriends(userId: number | string) {
-  const res = await fetch(`${API_URL}/social/friends/${userId}`, { headers: authHeaders() });
-  if (!res.ok) throw new Error("Failed to fetch friends");
-  return res.json();
+  const res = await fetch(`${API_URL}/social/friends/${userId}`, {
+    headers: authHeaders(),
+  });
+  return handleResponse(res);
 }
 
 export async function addFriend(userId: number | string, friendEmail: string) {
@@ -95,17 +133,21 @@ export async function addFriend(userId: number | string, friendEmail: string) {
     headers: authHeaders(),
     body: JSON.stringify({ friend_email: friendEmail }),
   });
-  if (!res.ok) throw new Error("Failed to add friend");
-  return res.json();
+  return handleResponse(res);
 }
 
-export async function removeFriend(userId: number | string, friendId: number | string) {
-  const res = await fetch(`${API_URL}/social/friends/${userId}/remove/${friendId}`, {
-    method: "DELETE",
-    headers: authHeaders(),
-  });
-  if (!res.ok) throw new Error("Failed to remove friend");
-  return res.json();
+export async function removeFriend(
+  userId: number | string,
+  friendId: number | string
+) {
+  const res = await fetch(
+    `${API_URL}/social/friends/${userId}/remove/${friendId}`,
+    {
+      method: "DELETE",
+      headers: authHeaders(),
+    }
+  );
+  return handleResponse(res);
 }
 
 // --- Gamification Endpoints ---
@@ -122,24 +164,36 @@ export async function logDailyLearning(
     headers: authHeaders(),
     body: JSON.stringify({ hours_studied, topics, reflection, tasks }),
   });
-  if (!res.ok) throw new Error("Failed to log learning");
-  return res.json();
+  return handleResponse(res);
 }
 
 // --- AI Test Endpoints ---
 
 export async function generateInterviewQuestion(userId: number | string) {
-  const res = await fetch(`${API_URL}/test/${userId}/generate`, { headers: authHeaders() });
-  if (!res.ok) throw new Error("Failed to generate question");
-  return res.json();
+  const res = await fetch(`${API_URL}/test/${userId}/generate`, {
+    headers: authHeaders(),
+  });
+  return handleResponse(res);
 }
 
-export async function evaluateAnswer(userId: number | string, question: string, answer: string) {
+export async function evaluateAnswer(
+  userId: number | string,
+  question: string,
+  answer: string
+) {
   const res = await fetch(`${API_URL}/test/${userId}/evaluate`, {
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify({ question, answer }),
   });
-  if (!res.ok) throw new Error("Failed to evaluate answer");
-  return res.json();
+  return handleResponse(res);
+}
+
+// --- Winner Endpoint ---
+
+export async function getWeeklyWinner() {
+  const res = await fetch(`${API_URL}/winner/current`, {
+    headers: authHeaders(),
+  });
+  return handleResponse(res);
 }

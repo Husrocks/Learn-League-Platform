@@ -9,6 +9,7 @@ import { register } from "@/lib/api";
 export default function SignupPage() {
   const router = useRouter();
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -20,12 +21,7 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      // In a real app we would have a username field. 
-      // We will generate a username from email for now.
-      const username = email.split('@')[0] + Math.floor(Math.random() * 1000);
       await register({ name, username, email, password, learning_goal: "General" });
-      
-      // Successfully registered! Redirect to login so they can log in
       router.push("/auth/login?registered=true");
     } catch (err: any) {
       setError(err.message || "Registration failed. Try again.");
@@ -77,6 +73,24 @@ export default function SignupPage() {
             </div>
 
             <div>
+              <label htmlFor="username" className="block text-xs font-medium text-[var(--color-muted-foreground)] mb-1 uppercase tracking-wider">
+                Username
+              </label>
+              <input
+                id="username"
+                type="text"
+                placeholder="jimmylearns"
+                value={username}
+                onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+                className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--color-accent)] transition-colors"
+                required
+                minLength={3}
+                maxLength={30}
+              />
+              <p className="text-[10px] text-[var(--color-muted-foreground)] mt-1">Letters, numbers, and underscores only.</p>
+            </div>
+
+            <div>
               <label htmlFor="email" className="block text-xs font-medium text-[var(--color-muted-foreground)] mb-1 uppercase tracking-wider">
                 Email Address
               </label>
@@ -95,14 +109,15 @@ export default function SignupPage() {
               <label htmlFor="password" className="block text-xs font-medium text-[var(--color-muted-foreground)] mb-1 uppercase tracking-wider">
                 Password
               </label>
-              <input 
-                id="password" 
-                type="password" 
-                placeholder="••••••••"
+              <input
+                id="password"
+                type="password"
+                placeholder="Min. 8 characters"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--color-accent)] transition-colors"
                 required
+                minLength={8}
               />
             </div>
           </div>
