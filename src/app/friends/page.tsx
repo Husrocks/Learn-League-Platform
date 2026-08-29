@@ -81,25 +81,23 @@ export default function FriendsPage() {
           </h2>
           
           <div className="space-y-4">
-            {[
-              { text: "Ahmed completed 2h 14m today", time: "2h ago", highlight: "Ahmed" },
-              { text: "Sara moved from #5 → #3", time: "4h ago", highlight: "Sara" },
-              { text: "Ali completed the weekly interview", time: "5h ago", highlight: "Ali" },
-              { text: "Hamza started a 9-day streak", time: "Yesterday", highlight: "Hamza" },
-            ].map((activity, i) => (
-              <div key={i} className="flex gap-4">
-                <div className="w-px bg-[var(--color-border)] relative my-1 ml-2">
-                  <div className="absolute -left-[5px] top-1 w-2.5 h-2.5 rounded-full bg-[var(--color-surface-hover)] border border-[var(--color-border)]" />
+            {friends.length > 0 ? (
+              friends.slice(0, 5).map((friend, i) => (
+                <div key={i} className="flex gap-4">
+                  <div className="w-px bg-[var(--color-border)] relative my-1 ml-2">
+                    <div className="absolute -left-[5px] top-1 w-2.5 h-2.5 rounded-full bg-[var(--color-surface-hover)] border border-[var(--color-border)]" />
+                  </div>
+                  <div className="pb-4">
+                    <p className="text-sm text-[var(--color-foreground)]">
+                      <span className="font-medium text-white">{friend.name}</span> completed {friend.hours_studied_this_week || 0}h this week
+                    </p>
+                    <p className="text-xs text-[var(--color-muted-foreground)] mt-1">{i + 1}h ago</p>
+                  </div>
                 </div>
-                <div className="pb-4">
-                  <p className="text-sm text-[var(--color-foreground)]">
-                    <span className="font-medium text-white">{activity.highlight}</span>
-                    {activity.text.replace(activity.highlight, '')}
-                  </p>
-                  <p className="text-xs text-[var(--color-muted-foreground)] mt-1">{activity.time}</p>
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-sm text-[var(--color-muted-foreground)]">No recent activity.</p>
+            )}
           </div>
         </div>
 

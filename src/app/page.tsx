@@ -26,9 +26,7 @@ export default function DashboardPage() {
         const friends = await getFriends(user.id);
         setLiveFriends(friends);
       } catch (e) {
-        // Fallback to mock store if backend offline
-        setLiveUser(storeUser);
-        setLiveFriends(storeFriends);
+        console.error("Failed to load dashboard data", e);
       } finally {
         setIsLoading(false);
       }
@@ -36,16 +34,36 @@ export default function DashboardPage() {
     fetchLiveDashboard();
   }, [storeUser, storeFriends]);
 
-  const heatmapData = useMemo(() => {
-    return Array.from({ length: 28 }).map(() => {
-      const intensity = Math.random();
-      let bgClass = "bg-[var(--color-surface)]";
-      if (intensity > 0.8) bgClass = "bg-[var(--color-accent)]";
-      else if (intensity > 0.5) bgClass = "bg-[var(--color-accent)] opacity-60";
-      else if (intensity > 0.2) bgClass = "bg-[var(--color-accent)] opacity-30";
-      return bgClass;
+  const monthConsistency = useMemo(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const totalDaysInMonth = new Date(year, month + 1, 0).getDate(); // 28, 29, 30, or 31 days
+    const currentDay = now.getDate();
+    const monthName = format(now, "MMMM");
+    const streak = liveUser?.streak || 0;
+
+    const days = Array.from({ length: totalDaysInMonth }).map((_, i) => {
+      const dayNum = i + 1;
+      const isPastOrToday = dayNum <= currentDay;
+      const isToday = dayNum === currentDay;
+      const isFuture = dayNum > currentDay;
+
+      // Active if within the current consecutive streak ending today
+      const daysFromToday = currentDay - dayNum;
+      const isActive = isPastOrToday && daysFromToday < streak;
+
+      return {
+        dayNum,
+        isToday,
+        isFuture,
+        isActive,
+        dateLabel: `${monthName} ${dayNum}`,
+      };
     });
-  }, []);
+
+    return { totalDaysInMonth, currentDay, monthName, days, streak };
+  }, [liveUser?.streak]);
 
   if (isLoading || !liveUser) return null;
 
@@ -87,22 +105,25 @@ export default function DashboardPage() {
             <h3 className="font-medium text-white text-lg">What are you learning today?</h3>
             
             <div className="space-y-3">
-              {[
-                { label: "Understand React's rendering model", done: true },
-                { label: "Build custom hooks for data fetching", done: false },
-                { label: "Complete 2 Leetcode algorithms", done: false },
-              ].map((task, i) => (
-                <div key={i} className="flex items-start gap-3 group cursor-pointer hover:bg-[var(--color-surface-hover)] p-2 rounded-md transition-colors">
-                  {task.done ? (
-                    <CheckCircle2 className="w-5 h-5 text-[var(--color-success)] shrink-0 mt-0.5" />
-                  ) : (
-                    <Circle className="w-5 h-5 text-[var(--color-muted)] group-hover:text-white transition-colors shrink-0 mt-0.5" />
-                  )}
-                  <span className={`text-sm ${task.done ? 'text-[var(--color-muted-foreground)] line-through' : 'text-[var(--color-foreground)]'}`}>
-                    {task.label}
-                  </span>
-                </div>
-              ))}
+              {liveUser.tasks && liveUser.tasks.length > 0 ? (
+                liveUser.tasks.map((task: any, i: number) => {
+                  const isDone = task.status === 'completed' || task.status === 'reviewed';
+                  return (
+                    <div key={i} className="flex items-start gap-3 group cursor-pointer hover:bg-[var(--color-surface-hover)] p-2 rounded-md transition-colors">
+                      {isDone ? (
+                        <CheckCircle2 className="w-5 h-5 text-[var(--color-success)] shrink-0 mt-0.5" />
+                      ) : (
+                        <Circle className="w-5 h-5 text-[var(--color-muted)] group-hover:text-white transition-colors shrink-0 mt-0.5" />
+                      )}
+                      <span className={`text-sm ${isDone ? 'text-[var(--color-muted-foreground)] line-through' : 'text-[var(--color-foreground)]'}`}>
+                        {task.title}
+                      </span>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-sm text-[var(--color-muted-foreground)]">No tasks assigned for today.</p>
+              )}
             </div>
 
             <button 
@@ -114,17 +135,51 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          {/* Activity Heatmap Mock */}
-          <div className="pt-4">
-            <h3 className="text-sm font-medium text-[var(--color-muted-foreground)] uppercase tracking-wider mb-4">Consistency</h3>
-            <div className="flex gap-1 overflow-hidden">
-              {heatmapData.map((bgClass, i) => (
-                <div 
-                  key={i} 
-                  className={`w-3 h-3 rounded-sm ${bgClass}`}
-                  title="Activity detail"
-                />
-              ))}
+          {/* Monthly Consistency Heatmap */}
+          <div className="pt-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider">
+                Consistency
+              </h3>
+              <span className="text-xs text-[var(--color-muted-foreground)] font-mono">
+                {monthConsistency.monthName} ({monthConsistency.totalDaysInMonth} Days)
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto py-1 scrollbar-hide">
+              {monthConsistency.days.map((day) => {
+                let boxStyle = "bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-neutral-500";
+
+                if (day.isActive) {
+                  boxStyle = "bg-[var(--color-accent)] shadow-[0_0_6px_rgba(226,109,90,0.35)] border border-[var(--color-accent)]";
+                } else if (day.isToday) {
+                  boxStyle = "bg-[var(--color-surface-hover)] border-2 border-white ring-1 ring-[var(--color-accent)]";
+                } else if (day.isFuture) {
+                  boxStyle = "bg-[var(--color-background)] border border-[var(--color-border)]/40 opacity-40";
+                }
+
+                const tooltip = day.isToday
+                  ? `${day.dateLabel} (Today) - ${day.isActive ? 'Active Streak 🔥' : 'Pending'}`
+                  : day.isActive
+                  ? `${day.dateLabel} - Completed 🔥`
+                  : day.isFuture
+                  ? `${day.dateLabel} - Upcoming`
+                  : `${day.dateLabel} - Inactive`;
+
+                return (
+                  <div
+                    key={day.dayNum}
+                    className={`flex-1 min-w-[9px] max-w-[16px] h-3.5 sm:h-4 rounded-sm transition-all cursor-pointer ${boxStyle}`}
+                    title={tooltip}
+                  />
+                );
+              })}
+            </div>
+
+            <div className="flex justify-between text-[10px] text-[var(--color-muted-foreground)] font-mono px-0.5">
+              <span>Day 1</span>
+              <span>Day 15</span>
+              <span>Day {monthConsistency.totalDaysInMonth}</span>
             </div>
           </div>
         </div>

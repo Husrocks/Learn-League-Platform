@@ -81,21 +81,50 @@ export const useStore = create<Store>((set, get) => ({
 
   initAuth: async () => {
     set({ isInitializing: true });
+    const isLocalhost = typeof window !== 'undefined' && 
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
     const token = typeof window !== 'undefined' ? localStorage.getItem('ll_token') : null;
-    if (!token) {
+    
+    if (token) {
+      try {
+        const user = await api.getMe();
+        set({ currentUser: user, token });
+        get().fetchFriends();
+        set({ isInitializing: false });
+        return;
+      } catch (err) {
+        if (typeof window !== 'undefined') localStorage.removeItem('ll_token');
+      }
+    }
+
+    if (isLocalhost) {
+      try {
+        const user = await api.getMe();
+        set({ currentUser: user, token: 'local-dev-token' });
+        get().fetchFriends();
+      } catch {
+        // Fallback default dev user if backend is offline
+        const localDevUser: User = {
+          id: 1,
+          name: "Local Admin",
+          username: "admin",
+          email: "admin@learnleague.local",
+          role: "admin",
+          streak: 7,
+          longest_streak: 14,
+          total_xp: 2450,
+          learning_goal: "AI & Full-Stack Development",
+          weekly_score: 95,
+          hours_studied_this_week: 18,
+          tasks: [],
+        };
+        set({ currentUser: localDevUser, token: 'local-dev-token' });
+      }
       set({ isInitializing: false });
       return;
     }
-    try {
-      const user = await api.getMe();
-      set({ currentUser: user, token });
-      get().fetchFriends();
-    } catch {
-      if (typeof window !== 'undefined') localStorage.removeItem('ll_token');
-      set({ currentUser: null, token: null });
-    } finally {
-      set({ isInitializing: false });
-    }
+
+    set({ currentUser: null, token: null, isInitializing: false });
   },
 
   fetchFriends: async () => {

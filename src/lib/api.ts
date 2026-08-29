@@ -169,9 +169,59 @@ export async function logDailyLearning(
 
 // --- AI Test Endpoints ---
 
-export async function generateInterviewQuestion(userId: number | string) {
-  const res = await fetch(`${API_URL}/test/${userId}/generate`, {
+export type MCQOption = {
+  id: string; // "A", "B", "C", "D"
+  text: string;
+};
+
+export type MCQQuestion = {
+  id: number;
+  topic: string;
+  question: string;
+  options: MCQOption[];
+  correct_option: string;
+  explanation: string;
+};
+
+export type QuizResponse = {
+  topics_covered: string;
+  assigned_topics: string[];
+  questions: MCQQuestion[];
+  question?: string;
+  model_used?: string;
+};
+
+export async function generateInterviewQuestion(
+  userId: number | string,
+  customTopic?: string,
+  count: number = 3
+): Promise<QuizResponse> {
+  const query = new URLSearchParams();
+  if (customTopic) query.set("custom_topic", customTopic);
+  if (count) query.set("count", String(count));
+  const queryString = query.toString() ? `?${query.toString()}` : "";
+  const res = await fetch(`${API_URL}/test/${userId}/generate${queryString}`, {
     headers: authHeaders(),
+  });
+  return handleResponse<QuizResponse>(res);
+}
+
+export async function evaluateMCQAnswer(
+  userId: number | string,
+  payload: {
+    question_id?: number;
+    topic?: string;
+    question: string;
+    selected_option: string;
+    correct_option: string;
+    explanation?: string;
+    user_reasoning?: string;
+  }
+) {
+  const res = await fetch(`${API_URL}/test/${userId}/evaluate-mcq`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
   });
   return handleResponse(res);
 }

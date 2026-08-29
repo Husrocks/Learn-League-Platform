@@ -18,10 +18,7 @@ export default function LeaderboardPage() {
         const users = await getLeaderboard();
         setLeaderboardUsers(users);
       } catch (e) {
-        // Fallback to mock data if backend not running
-        const friends = useStore.getState().friends;
-        const users = currentUser ? [currentUser, ...friends] : friends;
-        setLeaderboardUsers(users.sort((a, b) => (b?.weekly_score || 0) - (a?.weekly_score || 0)));
+        console.error("Failed to load leaderboard data", e);
       } finally {
         setIsLoading(false);
       }

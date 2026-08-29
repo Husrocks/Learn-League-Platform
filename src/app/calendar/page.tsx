@@ -34,16 +34,17 @@ export default function CalendarPage() {
 
   const today = new Date();
   
-  // Mock active days logic
+  // Real active days logic
   const getDayStatus = (day: number) => {
-    if (year === today.getFullYear() && month === today.getMonth() && day > today.getDate()) {
-      return "future";
-    }
-    // Deterministic for visual effect, except today is always active
-    if (year === today.getFullYear() && month === today.getMonth() && day === today.getDate()) {
-      return "active";
-    }
-    return (day % 3 !== 0) ? "active" : "inactive";
+    const dateOfCell = new Date(year, month, day);
+    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const diffTime = todayDate.getTime() - dateOfCell.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return "future";
+    if (diffDays === 0) return "active";
+    if (diffDays < (currentUser?.streak || 0)) return "active";
+    return "inactive";
   };
 
   return (
@@ -114,14 +115,7 @@ export default function CalendarPage() {
                   )}
                 </div>
                 
-                {status === "active" && (
-                  <div className="mt-3">
-                    <div className="w-full bg-[var(--color-accent)]/20 text-[var(--color-accent)] text-[10px] font-medium px-1.5 py-0.5 rounded-sm truncate">
-                      Goal met
-                    </div>
-                  </div>
-                )}
-                
+
               </div>
             );
           })}
