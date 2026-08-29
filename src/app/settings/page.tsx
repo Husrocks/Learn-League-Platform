@@ -105,16 +105,18 @@ export default function SettingsPage() {
         >
           Profile
         </button>
-        <button 
-          onClick={() => setActiveTab("admin")}
-          className={`pb-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-            activeTab === "admin" 
-              ? "border-[var(--color-accent)] text-white" 
-              : "border-transparent text-[var(--color-muted-foreground)] hover:text-white"
-          }`}
-        >
-          <Shield className="w-4 h-4" /> Admin Panel
-        </button>
+        {currentUser.role === "admin" && (
+          <button 
+            onClick={() => setActiveTab("admin")}
+            className={`pb-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+              activeTab === "admin" 
+                ? "border-[var(--color-accent)] text-white" 
+                : "border-transparent text-[var(--color-muted-foreground)] hover:text-white"
+            }`}
+          >
+            <Shield className="w-4 h-4" /> Admin Panel
+          </button>
+        )}
       </div>
 
       <div className="pt-4">
@@ -182,7 +184,7 @@ export default function SettingsPage() {
         )}
 
         {/* Admin Panel */}
-        {activeTab === "admin" && (
+        {activeTab === "admin" && currentUser.role === "admin" && (
           <div className="space-y-12">
             
             {/* Manage Friends */}
