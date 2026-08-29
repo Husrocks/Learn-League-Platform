@@ -4,7 +4,7 @@ import { useStore } from "@/store/useStore";
 import { format } from "date-fns";
 import { CheckCircle2, Circle, Flame, ArrowRight, Play, Trophy, Brain } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
-import { getMe, getFriends } from "@/lib/api";
+import { getMe, getLeaderboard } from "@/lib/api";
 
 export default function DashboardPage() {
   const storeUser = useStore((state) => state.currentUser);
@@ -22,8 +22,8 @@ export default function DashboardPage() {
         const user = await getMe();
         setLiveUser(user);
 
-        // T10: use the real authenticated user's ID, not a hardcoded 1
-        const friends = await getFriends(user.id);
+        // User requested all users to appear instead of just friends
+        const friends = await getLeaderboard();
         setLiveFriends(friends);
       } catch (e) {
         console.error("Failed to load dashboard data", e);
