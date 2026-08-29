@@ -130,7 +130,8 @@ export const useStore = create<Store>((set, get) => ({
   fetchFriends: async () => {
     const { currentUser } = get();
     if (!currentUser) return;
-    const friends = await api.getFriends(currentUser.id);
+    // Fetch all users (leaderboard) so they appear on the Friends page
+    const friends = await api.getLeaderboard();
     set({ friends });
   },
 
