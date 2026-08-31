@@ -30,9 +30,20 @@ async function handleResponse<T = any>(res: Response): Promise<T> {
           detail = body.detail
             .map((err: any) => {
               const field = err.loc ? err.loc[err.loc.length - 1] : "Field";
-              return `${field}: ${err.msg}`;
+              
+              // Custom friendly messages for common fields
+              if (err.type === "string_too_short") {
+                if (field === "topics") return "Please add at least one topic you studied today.";
+                if (field === "reflection") return "Please write a short reflection on what you learned.";
+                
+                const formattedField = field.charAt(0).toUpperCase() + field.slice(1).replace(/_/g, " ");
+                return `${formattedField} cannot be empty.`;
+              }
+              
+              const formattedField = field.charAt(0).toUpperCase() + field.slice(1).replace(/_/g, " ");
+              return `${formattedField}: ${err.msg}`;
             })
-            .join(", ");
+            .join(" | ");
         } else {
           detail = JSON.stringify(body.detail);
         }
