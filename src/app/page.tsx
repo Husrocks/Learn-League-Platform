@@ -2,9 +2,47 @@
 
 import { useStore } from "@/store/useStore";
 import { format } from "date-fns";
-import { CheckCircle2, Circle, Flame, ArrowRight, Play, Trophy, Brain } from "lucide-react";
+import { CheckCircle2, Circle, Flame, ArrowRight, Play, Trophy, Brain, ChevronUp, ChevronDown } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { getMe, getLeaderboard } from "@/lib/api";
+
+function DashboardTaskItem({ task }: { task: any }) {
+  const [expanded, setExpanded] = useState(false);
+  const isDone = task.status === 'completed' || task.status === 'reviewed';
+
+  return (
+    <div className="flex flex-col gap-2 p-2 group hover:bg-[var(--color-surface-hover)] rounded-md transition-colors">
+      <div className="flex items-start gap-3">
+        <button 
+          onClick={async (e) => {
+            e.stopPropagation();
+            if (!isDone) {
+              await useStore.getState().completeTask(task.id);
+            }
+          }}
+          className="shrink-0 mt-0.5 focus:outline-none"
+        >
+          {isDone ? (
+            <CheckCircle2 className="w-5 h-5 text-[var(--color-success)]" />
+          ) : (
+            <Circle className="w-5 h-5 text-[var(--color-muted)] hover:text-[var(--color-success)] transition-colors" />
+          )}
+        </button>
+        <div 
+          className="flex-1 cursor-pointer min-w-0 flex justify-between items-start gap-4"
+          onClick={() => setExpanded(!expanded)}
+        >
+          <span className={`text-sm whitespace-pre-wrap ${isDone ? 'text-[var(--color-muted-foreground)] line-through' : 'text-[var(--color-foreground)]'} ${expanded ? '' : 'line-clamp-1'}`}>
+            {task.title}
+          </span>
+          <button className="text-[var(--color-muted)] hover:text-white shrink-0 mt-0.5">
+            {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const storeUser = useStore((state) => state.currentUser);
@@ -106,29 +144,9 @@ export default function DashboardPage() {
             
             <div className="space-y-3">
               {liveUser.tasks && liveUser.tasks.length > 0 ? (
-                liveUser.tasks.map((task: any, i: number) => {
-                  const isDone = task.status === 'completed' || task.status === 'reviewed';
-                  return (
-                    <div 
-                      key={i} 
-                      onClick={async () => {
-                        if (!isDone) {
-                          await useStore.getState().completeTask(task.id);
-                        }
-                      }}
-                      className="flex items-start gap-3 group cursor-pointer hover:bg-[var(--color-surface-hover)] p-2 rounded-md transition-colors"
-                    >
-                      {isDone ? (
-                        <CheckCircle2 className="w-5 h-5 text-[var(--color-success)] shrink-0 mt-0.5" />
-                      ) : (
-                        <Circle className="w-5 h-5 text-[var(--color-muted)] group-hover:text-[var(--color-success)] transition-colors shrink-0 mt-0.5" />
-                      )}
-                      <span className={`text-sm ${isDone ? 'text-[var(--color-muted-foreground)] line-through' : 'text-[var(--color-foreground)]'}`}>
-                        {task.title}
-                      </span>
-                    </div>
-                  );
-                })
+                liveUser.tasks.map((task: any, i: number) => (
+                  <DashboardTaskItem key={i} task={task} />
+                ))
               ) : (
                 <p className="text-sm text-[var(--color-muted-foreground)]">No tasks assigned for today.</p>
               )}
