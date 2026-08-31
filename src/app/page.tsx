@@ -109,11 +109,19 @@ export default function DashboardPage() {
                 liveUser.tasks.map((task: any, i: number) => {
                   const isDone = task.status === 'completed' || task.status === 'reviewed';
                   return (
-                    <div key={i} className="flex items-start gap-3 group cursor-pointer hover:bg-[var(--color-surface-hover)] p-2 rounded-md transition-colors">
+                    <div 
+                      key={i} 
+                      onClick={async () => {
+                        if (!isDone) {
+                          await useStore.getState().completeTask(task.id);
+                        }
+                      }}
+                      className="flex items-start gap-3 group cursor-pointer hover:bg-[var(--color-surface-hover)] p-2 rounded-md transition-colors"
+                    >
                       {isDone ? (
                         <CheckCircle2 className="w-5 h-5 text-[var(--color-success)] shrink-0 mt-0.5" />
                       ) : (
-                        <Circle className="w-5 h-5 text-[var(--color-muted)] group-hover:text-white transition-colors shrink-0 mt-0.5" />
+                        <Circle className="w-5 h-5 text-[var(--color-muted)] group-hover:text-[var(--color-success)] transition-colors shrink-0 mt-0.5" />
                       )}
                       <span className={`text-sm ${isDone ? 'text-[var(--color-muted-foreground)] line-through' : 'text-[var(--color-foreground)]'}`}>
                         {task.title}
