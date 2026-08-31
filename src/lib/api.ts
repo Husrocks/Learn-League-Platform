@@ -23,10 +23,19 @@ async function handleResponse<T = any>(res: Response): Promise<T> {
     try {
       const body = await res.json();
       if (body?.detail) {
-        detail =
-          typeof body.detail === "string"
-            ? body.detail
-            : JSON.stringify(body.detail);
+        if (typeof body.detail === "string") {
+          detail = body.detail;
+        } else if (Array.isArray(body.detail)) {
+          // Handle FastAPI 422 Validation Errors gracefully
+          detail = body.detail
+            .map((err: any) => {
+              const field = err.loc ? err.loc[err.loc.length - 1] : "Field";
+              return `${field}: ${err.msg}`;
+            })
+            .join(", ");
+        } else {
+          detail = JSON.stringify(body.detail);
+        }
       } else if (body?.message) {
         detail = body.message;
       }
