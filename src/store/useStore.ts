@@ -23,10 +23,12 @@ export type User = {
   weekly_score?: number;
   hours_studied_this_week?: number;
   tasks?: Task[];
+  logs?: any[];
 };
 
 export type Friend = User & {
   isOnline?: boolean;
+  logs?: any[];
 };
 
 type Store = {

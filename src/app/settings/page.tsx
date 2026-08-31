@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useStore, User, Friend, Task } from "@/store/useStore";
-import { Settings, Shield, Plus, UserMinus, CheckCircle2, Clock, CheckSquare, ChevronDown, ChevronUp, XCircle } from "lucide-react";
+import { Settings, Shield, Plus, UserMinus, CheckCircle2, Clock, CheckSquare, ChevronDown, ChevronUp, XCircle, BookOpen } from "lucide-react";
 
 function ReviewTaskItem({ task, userId }: { task: Task, userId: number }) {
   const [expanded, setExpanded] = useState(false);
@@ -348,6 +348,59 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
+              </div>
+            </section>
+
+            {/* Daily Logs Review */}
+            <section className="space-y-6 pt-6 border-t border-[var(--color-border)]">
+              <h2 className="text-lg font-medium text-white flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-[var(--color-accent)]" /> 
+                Daily Logs Review
+              </h2>
+              
+              <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-6 overflow-y-auto max-h-[500px]">
+                <div className="space-y-6">
+                  {allUsers.map(user => {
+                    const logs = user.logs || [];
+                    if (logs.length === 0) return null;
+                    
+                    // Sort logs by date descending
+                    const sortedLogs = [...logs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                    
+                    return (
+                      <div key={user.id} className="space-y-3">
+                        <h4 className="text-sm font-semibold text-white border-b border-[var(--color-border)] pb-2">{user.name}'s Logs</h4>
+                        <div className="space-y-3">
+                          {sortedLogs.map(log => (
+                            <div key={log.id} className="bg-[var(--color-background)] border border-[var(--color-border)] rounded-md p-4 space-y-3">
+                              <div className="flex justify-between items-center">
+                                <span className="text-xs font-medium text-[var(--color-accent)]">{new Date(log.date).toLocaleDateString()}</span>
+                                <span className="text-xs text-[var(--color-muted-foreground)]">{log.hours_studied} hours studied</span>
+                              </div>
+                              
+                              <div>
+                                <p className="text-xs text-[var(--color-muted-foreground)] uppercase tracking-wider mb-1">Topics</p>
+                                <p className="text-sm text-white whitespace-pre-wrap">{log.topics}</p>
+                              </div>
+                              
+                              <div>
+                                <p className="text-xs text-[var(--color-muted-foreground)] uppercase tracking-wider mb-1">Reflection</p>
+                                <p className="text-sm text-[var(--color-muted)] whitespace-pre-wrap italic">"{log.reflection}"</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  
+                  {allUsers.every(u => !u.logs || u.logs.length === 0) && (
+                    <div className="text-center py-6">
+                      <BookOpen className="w-8 h-8 text-[var(--color-muted)] mx-auto mb-2" />
+                      <p className="text-sm text-[var(--color-muted-foreground)]">No daily logs submitted yet.</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </section>
 
