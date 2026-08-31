@@ -6,24 +6,22 @@ import { useStore } from "@/store/useStore";
 import { logDailyLearning } from "@/lib/api";
 
 export default function LearningLogPage() {
-  const { currentUser } = useStore();
-  const [tasks, setTasks] = useState([
-    { id: 1, label: "Understand React's rendering model", done: true },
-    { id: 2, label: "Build custom hooks for data fetching", done: false },
-    { id: 3, label: "Complete 2 Leetcode algorithms", done: false },
-  ]);
+  const { currentUser, completeTask } = useStore();
+  const [completedTaskIds, setCompletedTaskIds] = useState<number[]>([]);
   const [reflection, setReflection] = useState("");
   const [hours, setHours] = useState("");
   const [minutes, setMinutes] = useState("");
-  const [topics, setTopics] = useState("React, Performance");
+  const [topics, setTopics] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // T10: removed hardcoded USER_ID = 1; use authenticated user's real ID
+  const pendingTasks = currentUser?.tasks?.filter(t => t.status === "pending") || [];
 
   const toggleTask = (id: number) => {
-    setTasks(tasks.map(t => t.id === id ? { ...t, done: !t.done } : t));
+    setCompletedTaskIds(prev => 
+      prev.includes(id) ? prev.filter(taskId => taskId !== id) : [...prev, id]
+    );
   };
 
   const handleSubmit = async () => {
@@ -33,12 +31,15 @@ export default function LearningLogPage() {
     const totalHours = (parseFloat(hours) || 0) + ((parseFloat(minutes) || 0) / 60);
 
     try {
-      const apiTasks = tasks.map(t => ({ title: t.label, status: t.done ? "completed" : "pending" }));
-      // T10: use currentUser.id, not the removed hardcoded USER_ID = 1
-      await logDailyLearning(currentUser.id, totalHours, topics, reflection, apiTasks);
+      // Complete all selected tasks
+      for (const id of completedTaskIds) {
+        await completeTask(id);
+      }
+      
+      // Log learning hours
+      await logDailyLearning(currentUser.id, totalHours, topics, reflection, []);
       setSuccess(true);
     } catch (e) {
-      // T13: surface the real error to the user instead of silently faking success
       setSubmitError((e as Error).message || "Failed to submit. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -125,22 +126,31 @@ export default function LearningLogPage() {
             Tasks Completed
           </label>
           <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-2 space-y-1">
-            {tasks.map((task) => (
-              <div 
-                key={task.id} 
-                onClick={() => toggleTask(task.id)}
-                className="flex items-start gap-3 p-3 rounded-md cursor-pointer hover:bg-[var(--color-surface-hover)] transition-colors group"
-              >
-                {task.done ? (
-                  <CheckCircle2 className="w-5 h-5 text-[var(--color-success)] shrink-0 mt-0.5" />
-                ) : (
-                  <Circle className="w-5 h-5 text-[var(--color-muted)] group-hover:text-white transition-colors shrink-0 mt-0.5" />
-                )}
-                <span className={`text-base ${task.done ? 'text-[var(--color-muted-foreground)] line-through' : 'text-white'}`}>
-                  {task.label}
-                </span>
+            {pendingTasks.length > 0 ? (
+              pendingTasks.map((task) => {
+                const isDone = completedTaskIds.includes(task.id);
+                return (
+                  <div 
+                    key={task.id} 
+                    onClick={() => toggleTask(task.id)}
+                    className="flex items-start gap-3 p-3 rounded-md cursor-pointer hover:bg-[var(--color-surface-hover)] transition-colors group"
+                  >
+                    {isDone ? (
+                      <CheckCircle2 className="w-5 h-5 text-[var(--color-success)] shrink-0 mt-0.5" />
+                    ) : (
+                      <Circle className="w-5 h-5 text-[var(--color-muted)] group-hover:text-white transition-colors shrink-0 mt-0.5" />
+                    )}
+                    <span className={`text-base ${isDone ? 'text-[var(--color-muted-foreground)] line-through' : 'text-white'}`}>
+                      {task.title}
+                    </span>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="p-3 text-sm text-[var(--color-muted-foreground)] text-center">
+                No pending tasks to complete.
               </div>
-            ))}
+            )}
           </div>
         </div>
 
