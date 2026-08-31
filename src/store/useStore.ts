@@ -48,6 +48,7 @@ type Store = {
   removeFriend: (id: number) => Promise<void>;
   assignTask: (userId: number, title: string) => Promise<void>;
   reviewTask: (userId: number, taskId: number) => Promise<void>;
+  rejectTask: (userId: number, taskId: number) => Promise<void>;
   completeTask: (taskId: number) => Promise<void>;
   fetchFriends: () => Promise<void>;
 };
@@ -165,6 +166,21 @@ export const useStore = create<Store>((set, get) => ({
   reviewTask: async (userId, taskId) => {
     await api.reviewTask(taskId);
     get().fetchFriends();
+    const { currentUser } = get();
+    if (currentUser && userId === currentUser.id) {
+      const refreshedUser = await api.getMe();
+      set({ currentUser: refreshedUser });
+    }
+  },
+
+  rejectTask: async (userId, taskId) => {
+    await api.rejectTask(taskId);
+    get().fetchFriends();
+    const { currentUser } = get();
+    if (currentUser && userId === currentUser.id) {
+      const refreshedUser = await api.getMe();
+      set({ currentUser: refreshedUser });
+    }
   },
 
   completeTask: async (taskId) => {

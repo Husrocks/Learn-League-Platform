@@ -111,6 +111,14 @@ export async function reviewTask(taskId: number | string) {
   return handleResponse(res);
 }
 
+export async function rejectTask(taskId: number | string) {
+  const res = await fetch(`${API_URL}/tasks/${taskId}/reject`, {
+    method: "PUT",
+    headers: authHeaders(),
+  });
+  return handleResponse(res);
+}
+
 // --- Social Endpoints ---
 
 export async function getLeaderboard() {

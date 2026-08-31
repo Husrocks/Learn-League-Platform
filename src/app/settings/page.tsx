@@ -2,7 +2,44 @@
 
 import { useState } from "react";
 import { useStore, User, Friend, Task } from "@/store/useStore";
-import { Settings, Shield, Plus, UserMinus, CheckCircle2, Clock, CheckSquare } from "lucide-react";
+import { Settings, Shield, Plus, UserMinus, CheckCircle2, Clock, CheckSquare, ChevronDown, ChevronUp, XCircle } from "lucide-react";
+
+function ReviewTaskItem({ task, userId }: { task: Task, userId: number }) {
+  const [expanded, setExpanded] = useState(false);
+  const { reviewTask, rejectTask } = useStore();
+
+  return (
+    <div className="flex flex-col gap-3 p-3 bg-[var(--color-background)] border border-[var(--color-border)] rounded-md">
+      <div 
+        className="flex-1 cursor-pointer min-w-0 flex justify-between items-start gap-4"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <div className="flex-1">
+          <p className={`text-sm text-white whitespace-pre-wrap ${expanded ? '' : 'line-clamp-1'}`}>{task.title}</p>
+          <p className="text-xs text-[var(--color-muted-foreground)] mt-1">Assigned by {task.assigned_by || 'System'}</p>
+        </div>
+        <button className="text-[var(--color-muted)] hover:text-white shrink-0 mt-0.5">
+          {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </button>
+      </div>
+      
+      <div className="flex items-center gap-2 justify-end mt-1 pt-2 border-t border-[var(--color-border)]">
+        <button 
+          onClick={(e) => { e.stopPropagation(); rejectTask(userId, task.id); }}
+          className="flex justify-center items-center gap-1 px-3 py-1.5 bg-red-500/10 text-red-500 hover:bg-red-500/20 text-xs font-medium rounded-sm transition-colors"
+        >
+          <XCircle className="w-3.5 h-3.5" /> Reject
+        </button>
+        <button 
+          onClick={(e) => { e.stopPropagation(); reviewTask(userId, task.id); }}
+          className="flex justify-center items-center gap-1 px-3 py-1.5 bg-[var(--color-success)]/10 text-[var(--color-success)] hover:bg-[var(--color-success)]/20 text-xs font-medium rounded-sm transition-colors"
+        >
+          <CheckCircle2 className="w-3.5 h-3.5" /> Approve
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function SettingsPage() {
   const { 
@@ -12,6 +49,7 @@ export default function SettingsPage() {
     removeFriend, 
     assignTask, 
     reviewTask,
+    rejectTask,
     logout,
     setCurrentUser
   } = useStore();
@@ -295,18 +333,7 @@ export default function SettingsPage() {
                         <div key={user.id} className="space-y-2">
                           <h4 className="text-xs font-semibold text-white">{user.name}'s Pending Reviews</h4>
                           {completedTasks.map(task => (
-                            <div key={task.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-[var(--color-background)] border border-[var(--color-border)] rounded-md">
-                              <div>
-                                <p className="text-sm text-white">{task.title}</p>
-                                <p className="text-xs text-[var(--color-muted-foreground)] mt-1">Assigned by {task.assigned_by || 'System'}</p>
-                              </div>
-                              <button 
-                                onClick={() => reviewTask(user.id, task.id)}
-                                className="flex justify-center items-center gap-1 px-3 py-1.5 bg-[var(--color-success)]/10 text-[var(--color-success)] hover:bg-[var(--color-success)]/20 text-xs font-medium rounded-sm transition-colors"
-                              >
-                                <CheckCircle2 className="w-3.5 h-3.5" /> Approve
-                              </button>
-                            </div>
+                            <ReviewTaskItem key={task.id} task={task} userId={user.id} />
                           ))}
                         </div>
                       );
