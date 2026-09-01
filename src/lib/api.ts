@@ -275,3 +275,28 @@ export async function getWeeklyWinner() {
   });
   return handleResponse(res);
 }
+
+// --- Admin Endpoints ---
+
+export async function getAdminUsers() {
+  const res = await fetch(`${API_URL}/admin/users`, {
+    headers: authHeaders(),
+  });
+  return handleResponse(res);
+}
+
+export async function getAdminTasks() {
+  const res = await fetch(`${API_URL}/admin/tasks`, {
+    headers: authHeaders(),
+  });
+  return handleResponse(res);
+}
+
+export async function updateUserRole(userId: number | string, role: string) {
+  const res = await fetch(`${API_URL}/admin/users/${userId}/role`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify({ role }),
+  });
+  return handleResponse(res);
+}
