@@ -237,17 +237,30 @@ export default function DashboardPage() {
             </div>
             
             <div className="space-y-1">
-              {[...liveFriends].sort((a, b) => (b.total_xp || b.weeklyScore) - (a.total_xp || a.weeklyScore)).slice(0, 3).map((friend, i) => (
-                <div key={friend.id} className="flex items-center justify-between p-2 rounded-md hover:bg-[var(--color-surface-hover)] transition-colors">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-medium text-[var(--color-muted-foreground)] w-4">{`0${i + 1}`}</span>
-                    <span className="text-sm font-medium text-white">{friend.name}</span>
+              {[...liveFriends].sort((a, b) => (b.total_xp || b.weeklyScore) - (a.total_xp || a.weeklyScore)).slice(0, 3).map((friend, i) => {
+                const friendActive = friend.last_seen
+                  ? (Date.now() - new Date(friend.last_seen).getTime()) < 5 * 60 * 1000
+                  : false;
+                return (
+                  <div key={friend.id} className="flex items-center justify-between p-2 rounded-md hover:bg-[var(--color-surface-hover)] transition-colors">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-medium text-[var(--color-muted-foreground)] w-4">{`0${i + 1}`}</span>
+                      <div className="flex items-center gap-1.5">
+                        {friendActive && (
+                          <span className="relative flex h-2 w-2 shrink-0">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                          </span>
+                        )}
+                        <span className="text-sm font-medium text-white">{friend.name}</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-medium">{friend.total_xp || friend.weeklyScore} XP</div>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-sm font-medium">{friend.total_xp || friend.weeklyScore} XP</div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
               
               <div className="flex items-center justify-between p-2 rounded-md bg-[var(--color-surface)] border border-[var(--color-border)] mt-2 cursor-pointer hover:bg-[var(--color-surface-hover)] transition-colors" onClick={() => window.location.href = '/leaderboard'}>
                 <div className="flex items-center gap-3">

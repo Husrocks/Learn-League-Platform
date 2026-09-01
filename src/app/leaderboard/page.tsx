@@ -66,7 +66,12 @@ export default function LeaderboardPage() {
         <div className="space-y-3">
           {allUsers.map((user, i) => {
             const isMe = user.id === currentUser.id;
-            
+            const active = isMe
+              ? true
+              : user.last_seen
+              ? (Date.now() - new Date(user.last_seen).getTime()) < 5 * 60 * 1000
+              : false;
+
             return (
               <div 
                 key={user.id}
@@ -84,7 +89,21 @@ export default function LeaderboardPage() {
                 
                 <div className="flex-1 flex items-center gap-6 ml-4">
                   <div className="w-48">
-                    <span className="text-lg font-medium text-white block">{isMe ? "You" : user.name}</span>
+                    <div className="flex items-center gap-2">
+                      {/* Green active dot */}
+                      {active && (
+                        <span className="relative flex h-2.5 w-2.5 shrink-0">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+                        </span>
+                      )}
+                      <span className="text-lg font-medium text-white">{isMe ? "You" : user.name}</span>
+                      {active && (
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-green-400 leading-none">
+                          Active
+                        </span>
+                      )}
+                    </div>
                     <span className="text-xs text-[var(--color-muted-foreground)]">{user.learning_goal || "General"}</span>
                   </div>
                   
