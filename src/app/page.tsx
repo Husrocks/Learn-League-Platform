@@ -51,6 +51,7 @@ export default function DashboardPage() {
   const [liveUser, setLiveUser] = useState<any>(storeUser);
   const [liveFriends, setLiveFriends] = useState<any[]>(storeFriends);
   const [isLoading, setIsLoading] = useState(true);
+  const [showPreviousTasks, setShowPreviousTasks] = useState(false);
 
   const today = new Date();
 
@@ -103,6 +104,20 @@ export default function DashboardPage() {
     return { totalDaysInMonth, currentDay, monthName, days, streak };
   }, [liveUser?.streak]);
 
+  const displayTasks = useMemo(() => {
+    if (!liveUser?.tasks) return [];
+    const todayString = new Date().toDateString();
+    return liveUser.tasks.filter((task: any) => {
+      const isToday = task.date_assigned 
+        ? new Date(task.date_assigned).toDateString() === todayString
+        : false;
+      const isDone = task.status === 'completed' || task.status === 'reviewed';
+      
+      if (showPreviousTasks) return true;
+      return isToday || !isDone;
+    });
+  }, [liveUser?.tasks, showPreviousTasks]);
+
   if (isLoading || !liveUser) return null;
 
   return (
@@ -140,11 +155,19 @@ export default function DashboardPage() {
           </div>
 
           <div className="glass-panel rounded-lg p-6 space-y-6">
-            <h3 className="font-medium text-white text-lg">What are you learning today?</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-medium text-white text-lg">What are you learning today?</h3>
+              <button 
+                onClick={() => setShowPreviousTasks(!showPreviousTasks)}
+                className="text-xs text-[var(--color-muted-foreground)] hover:text-white transition-colors focus:outline-none"
+              >
+                {showPreviousTasks ? "Hide Previous" : "Show Previous"}
+              </button>
+            </div>
             
             <div className="space-y-3">
-              {liveUser.tasks && liveUser.tasks.length > 0 ? (
-                liveUser.tasks.map((task: any, i: number) => (
+              {displayTasks.length > 0 ? (
+                displayTasks.map((task: any, i: number) => (
                   <DashboardTaskItem key={i} task={task} />
                 ))
               ) : (
