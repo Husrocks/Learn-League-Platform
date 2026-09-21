@@ -1,12 +1,25 @@
 "use client";
 
 import { useStore, Task, Friend, LearningLog } from "@/store/useStore";
-import { format } from "date-fns";
+import { format, startOfWeek, addDays, isSameDay } from "date-fns";
 import { CheckCircle2, Circle, Flame, ArrowRight, Trophy, Brain, ChevronUp, ChevronDown } from "lucide-react";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { getLeaderboard } from "@/lib/api";
 import { AreaChart, Area, Tooltip, ResponsiveContainer } from "recharts";
+
+function parseLogDate(dateStr: string): Date {
+  if (!dateStr) return new Date(NaN);
+  const cleanStr = dateStr.split("T")[0];
+  const parts = cleanStr.split("-");
+  if (parts.length === 3) {
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    const d = parseInt(parts[2], 10);
+    return new Date(y, m, d);
+  }
+  return new Date(dateStr);
+}
 
 function DashboardTaskItem({ task }: { task: Task }) {
   const [expanded, setExpanded] = useState(false);
@@ -74,33 +87,29 @@ export default function DashboardPage() {
 
   const weeklyXpData = useMemo(() => {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const totalXp = liveUser?.total_xp || 0;
     const logs = liveUser?.logs || [];
-    
-    // Compute cumulative or logged XP for the current week
-    if (logs.length > 0) {
-      return days.map((day, idx) => {
-        const dayLogs = logs.filter((log: LearningLog) => {
-          if (!log.date) return false;
-          const logDate = new Date(log.date);
-          const dayIndex = (logDate.getDay() + 6) % 7; // Monday = 0
-          return dayIndex <= idx;
-        });
-        const accumulatedHours = dayLogs.reduce((acc: number, l: LearningLog) => acc + (l.hours_studied || 0), 0);
-        return {
-          name: day,
-          xp: Math.min(totalXp, Math.max(0, Math.round(accumulatedHours * 50)))
-        };
-      });
-    }
+    const now = new Date();
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
 
-    // Default smooth progression up to current total XP
-    const step = Math.round(totalXp / 7);
-    return days.map((day, idx) => ({
-      name: day,
-      xp: idx === 6 ? totalXp : Math.min(totalXp, step * (idx + 1))
-    }));
-  }, [liveUser?.total_xp, liveUser?.logs]);
+    return days.map((day, idx) => {
+      const dayDate = addDays(weekStart, idx);
+      const dayLogs = logs.filter((log: LearningLog) => {
+        if (!log.date) return false;
+        const logDate = parseLogDate(log.date);
+        return isSameDay(logDate, dayDate);
+      });
+
+      const dayXp = dayLogs.reduce((acc: number, l: LearningLog) => {
+        const xp = l.xp_earned !== undefined ? l.xp_earned : Math.round((l.hours_studied || 0) * 50);
+        return acc + xp;
+      }, 0);
+
+      return {
+        name: day,
+        xp: dayXp
+      };
+    });
+  }, [liveUser?.logs]);
 
   const monthConsistency = useMemo(() => {
     const now = new Date();
@@ -147,9 +156,15 @@ export default function DashboardPage() {
     });
   }, [liveUser, showPreviousTasks]);
 
+  const isMounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
+
   const [nowTimestamp] = useState(() => Date.now());
 
-  if (isLoading || !liveUser) return null;
+  if (!isMounted || isLoading || !liveUser) return null;
 
   return (
     <div className="space-y-12 animate-in fade-in duration-700">

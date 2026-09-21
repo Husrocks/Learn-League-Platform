@@ -16,6 +16,7 @@ export type LearningLog = {
   hours_studied: number;
   topics: string;
   reflection: string;
+  xp_earned?: number;
 };
 
 export type User = {
@@ -182,13 +183,15 @@ export const useStore = create<Store>((set, get) => ({
     const { currentUser } = get();
     if (!currentUser) return;
 
-    for (const id of completedTaskIds) {
-      await api.completeTask(id);
-    }
-
     await api.logDailyLearning(currentUser.id, hours, topics, reflection, [], completedTaskIds);
-    const refreshedUser = await api.getMe();
-    set({ currentUser: refreshedUser });
+
+    try {
+      const refreshedUser = await api.getMe();
+      set({ currentUser: refreshedUser });
+    } catch (refreshErr) {
+      console.error("[LearnLeague] Learning log saved, but failed to refresh profile:", refreshErr);
+      throw new Error("Your learning log was saved, but updating your profile view failed. Please refresh the page.");
+    }
   }
 }));
 
