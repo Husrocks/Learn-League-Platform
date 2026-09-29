@@ -64,7 +64,7 @@ type Store = {
   reviewTask: (userId: number, taskId: number) => Promise<void>;
   rejectTask: (userId: number, taskId: number) => Promise<void>;
   completeTask: (taskId: number) => Promise<void>;
-  logDailyLearning: (hours: number, topics: string, reflection: string, completedTaskIds?: number[]) => Promise<void>;
+  logDailyLearning: (hours: number, topics: string, reflection: string, completedTaskIds?: number[]) => Promise<{ success: boolean; warning?: string }>;
   fetchLeaderboardAsNetwork: () => Promise<void>;
 };
 
@@ -179,18 +179,32 @@ export const useStore = create<Store>((set, get) => ({
     set({ currentUser: refreshedUser });
   },
 
+  /**
+   * Atomic Daily Learning & Task Completion Submission
+   * 
+   * Transmits study hours, topics, reflection, and completed task IDs in a single
+   * transactional POST payload to `/learning/{userId}/log`.
+   * If post succeeds but subsequent `getMe()` user refresh fails, returns `warning` instead
+   * of throwing an unhandled exception, ensuring submission is marked as successful.
+   */
   logDailyLearning: async (hours, topics, reflection, completedTaskIds = []) => {
     const { currentUser } = get();
-    if (!currentUser) return;
+    if (!currentUser) return { success: false, warning: "User session not found." };
 
+    // Transactional POST request to backend containing task_ids
     await api.logDailyLearning(currentUser.id, hours, topics, reflection, [], completedTaskIds);
 
+    // Refresh profile state post-submission
     try {
       const refreshedUser = await api.getMe();
       set({ currentUser: refreshedUser });
+      return { success: true };
     } catch (refreshErr) {
-      console.error("[LearnLeague] Learning log saved, but failed to refresh profile:", refreshErr);
-      throw new Error("Your learning log was saved, but updating your profile view failed. Please refresh the page.");
+      console.warn("[LearnLeague] Learning log saved, but failed to refresh user profile:", refreshErr);
+      return {
+        success: true,
+        warning: "Your learning log was saved successfully, but updating your dashboard view failed. Please reload the page."
+      };
     }
   }
 }));

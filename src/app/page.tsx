@@ -89,18 +89,23 @@ export default function DashboardPage() {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const logs = liveUser?.logs || [];
     const now = new Date();
+    // Calculate exact start of the current week (Monday)
     const weekStart = startOfWeek(now, { weekStartsOn: 1 });
 
     return days.map((day, idx) => {
       const dayDate = addDays(weekStart, idx);
+      // Filter logs strictly matching the specific date of this day in the active week
       const dayLogs = logs.filter((log: LearningLog) => {
         if (!log.date) return false;
         const logDate = parseLogDate(log.date);
         return isSameDay(logDate, dayDate);
       });
 
+      // Accumulate authentic backend XP earned for the target day
       const dayXp = dayLogs.reduce((acc: number, l: LearningLog) => {
-        const xp = l.xp_earned !== undefined ? l.xp_earned : Math.round((l.hours_studied || 0) * 50);
+        const xp = l.xp_earned !== undefined && l.xp_earned !== null 
+          ? l.xp_earned 
+          : Math.round((l.hours_studied || 0) * 50);
         return acc + xp;
       }, 0);
 
@@ -110,6 +115,10 @@ export default function DashboardPage() {
       };
     });
   }, [liveUser?.logs]);
+
+  const hasWeeklyLogs = useMemo(() => {
+    return weeklyXpData.some((d) => d.xp > 0);
+  }, [weeklyXpData]);
 
   const monthConsistency = useMemo(() => {
     const now = new Date();
@@ -219,6 +228,11 @@ export default function DashboardPage() {
                 </AreaChart>
               </ResponsiveContainer>
             </div>
+            {!hasWeeklyLogs && (
+              <p className="text-xs text-[var(--color-muted-foreground)] italic relative z-10 text-center">
+                No activity logged for this week yet. Submit your daily learning to build your XP graph.
+              </p>
+            )}
           </div>
 
           <div className="glass-panel rounded-lg p-6 space-y-6">

@@ -1,4 +1,9 @@
 import type { User, Friend, Task } from "../store/useStore";
+import {
+  AuthResponseSchema,
+  UserSchema,
+  validateRuntimeSchema,
+} from "./schemas";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://learn-league-backend.vercel.app";
 
@@ -33,6 +38,22 @@ function authHeaders(): Record<string, string> {
   return token
     ? { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
     : { "Content-Type": "application/json" };
+}
+
+/**
+ * Safe fetch wrapper that catches raw browser network failures (e.g. CORS preflight issues, offline mode, server connection refused)
+ * and formats them into clean, predictable Error exceptions.
+ */
+async function safeFetch(url: string, options?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, options);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Network error";
+    if (msg.includes("Failed to fetch") || msg.includes("NetworkError") || msg.includes("fetch")) {
+      throw new Error("Unable to connect to backend server. Please verify network connection or try again later.");
+    }
+    throw err;
+  }
 }
 
 /**
@@ -92,12 +113,13 @@ async function handleResponse<T = unknown>(res: Response): Promise<T> {
 // --- Auth Endpoints ---
 
 export async function login(email: string, password: string): Promise<AuthResponse> {
-  const res = await fetch(`${API_URL}/auth/login`, {
+  const res = await safeFetch(`${API_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
   });
-  return handleResponse<AuthResponse>(res);
+  const data = await handleResponse<AuthResponse>(res);
+  return validateRuntimeSchema(AuthResponseSchema, data) as AuthResponse;
 }
 
 export async function register(userData: {
@@ -107,24 +129,26 @@ export async function register(userData: {
   password: string;
   learning_goal: string;
 }): Promise<AuthResponse> {
-  const res = await fetch(`${API_URL}/auth/register`, {
+  const res = await safeFetch(`${API_URL}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(userData),
   });
-  return handleResponse<AuthResponse>(res);
+  const data = await handleResponse<AuthResponse>(res);
+  return validateRuntimeSchema(AuthResponseSchema, data) as AuthResponse;
 }
 
 export async function getMe(): Promise<User> {
-  const res = await fetch(`${API_URL}/auth/me`, { headers: authHeaders() });
-  return handleResponse<User>(res);
+  const res = await safeFetch(`${API_URL}/auth/me`, { headers: authHeaders() });
+  const data = await handleResponse<User>(res);
+  return validateRuntimeSchema(UserSchema, data) as User;
 }
 
 export async function updateProfile(data: {
   name?: string;
   learning_goal?: string;
 }): Promise<User> {
-  const res = await fetch(`${API_URL}/auth/me`, {
+  const res = await safeFetch(`${API_URL}/auth/me`, {
     method: "PATCH",
     headers: authHeaders(),
     body: JSON.stringify(data),
@@ -138,7 +162,7 @@ export async function assignTask(
   userId: number | string,
   taskData: { title: string; assigned_by: string }
 ): Promise<Task> {
-  const res = await fetch(`${API_URL}/tasks/${userId}/assign`, {
+  const res = await safeFetch(`${API_URL}/tasks/${userId}/assign`, {
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify(taskData),
@@ -147,7 +171,7 @@ export async function assignTask(
 }
 
 export async function completeTask(taskId: number | string): Promise<Task> {
-  const res = await fetch(`${API_URL}/tasks/${taskId}/complete`, {
+  const res = await safeFetch(`${API_URL}/tasks/${taskId}/complete`, {
     method: "PUT",
     headers: authHeaders(),
   });
@@ -155,7 +179,7 @@ export async function completeTask(taskId: number | string): Promise<Task> {
 }
 
 export async function reviewTask(taskId: number | string): Promise<Task> {
-  const res = await fetch(`${API_URL}/tasks/${taskId}/review`, {
+  const res = await safeFetch(`${API_URL}/tasks/${taskId}/review`, {
     method: "PUT",
     headers: authHeaders(),
   });
@@ -163,7 +187,7 @@ export async function reviewTask(taskId: number | string): Promise<Task> {
 }
 
 export async function rejectTask(taskId: number | string): Promise<Task> {
-  const res = await fetch(`${API_URL}/tasks/${taskId}/reject`, {
+  const res = await safeFetch(`${API_URL}/tasks/${taskId}/reject`, {
     method: "PUT",
     headers: authHeaders(),
   });
@@ -173,21 +197,21 @@ export async function rejectTask(taskId: number | string): Promise<Task> {
 // --- Social Endpoints ---
 
 export async function getLeaderboard(): Promise<User[]> {
-  const res = await fetch(`${API_URL}/social/leaderboard`, {
+  const res = await safeFetch(`${API_URL}/social/leaderboard`, {
     headers: authHeaders(),
   });
   return handleResponse<User[]>(res);
 }
 
 export async function getFriends(userId: number | string): Promise<Friend[]> {
-  const res = await fetch(`${API_URL}/social/friends/${userId}`, {
+  const res = await safeFetch(`${API_URL}/social/friends/${userId}`, {
     headers: authHeaders(),
   });
   return handleResponse<Friend[]>(res);
 }
 
 export async function addFriend(userId: number | string, friendEmail: string): Promise<{ message: string }> {
-  const res = await fetch(`${API_URL}/social/friends/${userId}/add`, {
+  const res = await safeFetch(`${API_URL}/social/friends/${userId}/add`, {
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify({ friend_email: friendEmail }),
@@ -199,7 +223,7 @@ export async function removeFriend(
   userId: number | string,
   friendId: number | string
 ): Promise<{ message: string }> {
-  const res = await fetch(
+  const res = await safeFetch(
     `${API_URL}/social/friends/${userId}/remove/${friendId}`,
     {
       method: "DELETE",
@@ -219,7 +243,7 @@ export async function logDailyLearning(
   tasks: { title: string; status: string }[] = [],
   task_ids?: number[]
 ): Promise<{ message: string; xp_earned?: number }> {
-  const res = await fetch(`${API_URL}/learning/${userId}/log`, {
+  const res = await safeFetch(`${API_URL}/learning/${userId}/log`, {
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify({ hours_studied, topics, reflection, tasks, task_ids }),
@@ -260,7 +284,7 @@ export async function generateInterviewQuestion(
   if (customTopic) query.set("custom_topic", customTopic);
   if (count) query.set("count", String(count));
   const queryString = query.toString() ? `?${query.toString()}` : "";
-  const res = await fetch(`${API_URL}/test/${userId}/generate${queryString}`, {
+  const res = await safeFetch(`${API_URL}/test/${userId}/generate${queryString}`, {
     headers: authHeaders(),
   });
   return handleResponse<QuizResponse>(res);
@@ -278,7 +302,7 @@ export async function evaluateMCQAnswer(
     user_reasoning?: string;
   }
 ): Promise<EvaluationResult> {
-  const res = await fetch(`${API_URL}/test/${userId}/evaluate-mcq`, {
+  const res = await safeFetch(`${API_URL}/test/${userId}/evaluate-mcq`, {
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify(payload),
@@ -291,7 +315,7 @@ export async function evaluateAnswer(
   question: string,
   answer: string
 ): Promise<EvaluationResult> {
-  const res = await fetch(`${API_URL}/test/${userId}/evaluate`, {
+  const res = await safeFetch(`${API_URL}/test/${userId}/evaluate`, {
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify({ question, answer }),
@@ -309,7 +333,7 @@ export type WeeklyWinner = {
 };
 
 export async function getWeeklyWinner(): Promise<WeeklyWinner> {
-  const res = await fetch(`${API_URL}/winner/current`, {
+  const res = await safeFetch(`${API_URL}/winner/current`, {
     headers: authHeaders(),
   });
   return handleResponse<WeeklyWinner>(res);
@@ -318,21 +342,21 @@ export async function getWeeklyWinner(): Promise<WeeklyWinner> {
 // --- Admin Endpoints ---
 
 export async function getAdminUsers(): Promise<User[]> {
-  const res = await fetch(`${API_URL}/admin/users`, {
+  const res = await safeFetch(`${API_URL}/admin/users`, {
     headers: authHeaders(),
   });
   return handleResponse<User[]>(res);
 }
 
 export async function getAdminTasks(): Promise<AdminTask[]> {
-  const res = await fetch(`${API_URL}/admin/tasks`, {
+  const res = await safeFetch(`${API_URL}/admin/tasks`, {
     headers: authHeaders(),
   });
   return handleResponse<AdminTask[]>(res);
 }
 
 export async function updateUserRole(userId: number | string, role: string): Promise<{ message: string }> {
-  const res = await fetch(`${API_URL}/admin/users/${userId}/role`, {
+  const res = await safeFetch(`${API_URL}/admin/users/${userId}/role`, {
     method: "PUT",
     headers: authHeaders(),
     body: JSON.stringify({ role }),

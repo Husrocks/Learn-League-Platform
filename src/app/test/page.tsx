@@ -113,25 +113,32 @@ export default function WeeklyTestPage() {
         user_reasoning: userReasoning,
       });
 
-      setEvaluation(result);
+      // Ensure incorrect answers earn 0 XP
+      const actualXp = result.is_correct ? (result.xp_earned || 25) : 0;
+
+      setEvaluation({
+        ...result,
+        xp_earned: actualXp
+      });
       setAnswersSummary(prev => [
         ...prev,
         {
           question: currentQ,
           selected: selectedOption,
           isCorrect: result.is_correct,
-          xp: result.xp_earned,
+          xp: actualXp,
         }
       ]);
     } catch (err) {
       console.error("Evaluation error:", err);
       // Local fallback evaluation
       const isCorrect = selectedOption.toUpperCase() === currentQ.correct_option.toUpperCase();
+      const fallbackXp = isCorrect ? 25 : 0;
       setEvaluation({
         is_correct: isCorrect,
-        score: isCorrect ? 100 : 30,
-        xp_earned: isCorrect ? 25 : 5,
-        feedback: isCorrect ? "🎉 Great job! Correct option selected." : `❌ Incorrect. Correct answer: ${currentQ.correct_option}`,
+        score: isCorrect ? 100 : 0,
+        xp_earned: fallbackXp,
+        feedback: isCorrect ? "🎉 Great job! Correct option selected." : `❌ Incorrect. The correct answer is Option ${currentQ.correct_option}.`,
         explanation: currentQ.explanation
       });
       setAnswersSummary(prev => [
@@ -140,7 +147,7 @@ export default function WeeklyTestPage() {
           question: currentQ,
           selected: selectedOption,
           isCorrect,
-          xp: isCorrect ? 25 : 5,
+          xp: fallbackXp,
         }
       ]);
     } finally {
@@ -168,13 +175,13 @@ export default function WeeklyTestPage() {
       <div className="max-w-3xl mx-auto py-8 space-y-8 animate-in fade-in duration-500">
         
         {/* Header Banner */}
-        <div className="glass-panel rounded-2xl p-10 space-y-8 relative overflow-hidden">
+        <div className="glass-panel rounded-2xl p-6 sm:p-10 space-y-8 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
             <Brain className="w-64 h-64 text-[var(--color-accent)]" />
           </div>
           <div className="relative z-10 flex flex-col md:flex-row md:items-start justify-between gap-6">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-xl bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/20 flex items-center justify-center">
+              <div className="w-14 h-14 rounded-xl bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/20 flex items-center justify-center shrink-0">
                 <Brain className="w-7 h-7 text-[var(--color-accent)]" />
               </div>
               <div>
@@ -184,7 +191,7 @@ export default function WeeklyTestPage() {
                 </p>
               </div>
             </div>
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--color-background)] border border-[var(--color-border)] text-xs text-[var(--color-muted-foreground)]">
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--color-background)] border border-[var(--color-border)] text-xs text-[var(--color-muted-foreground)] shrink-0">
               <Sparkles className="w-3.5 h-3.5 text-amber-400" />
               <span>Groq 120B Model</span>
             </div>
@@ -192,7 +199,7 @@ export default function WeeklyTestPage() {
 
           {/* Admin Assigned Topics Section */}
           <div className="space-y-3 pt-4 border-t border-[var(--color-border)]">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
               <div className="flex items-center gap-2 text-sm font-medium text-white">
                 <Tag className="w-4 h-4 text-[var(--color-accent)]" />
                 <span>Admin-Assigned Learning Topics</span>
@@ -216,7 +223,7 @@ export default function WeeklyTestPage() {
                     }`}
                   >
                     <BookOpen className="w-3.5 h-3.5 text-[var(--color-accent)] shrink-0" />
-                    <span>{topic}</span>
+                    <span className="break-words">{topic}</span>
                   </button>
                 );
               })}
@@ -247,28 +254,28 @@ export default function WeeklyTestPage() {
             </div>
           </div>
 
-          {/* Quick Metrics */}
-          <div className="grid grid-cols-3 gap-3 pt-2">
-            <div className="p-3.5 bg-[var(--color-background)] border border-[var(--color-border)] rounded-lg">
-              <div className="flex items-center gap-1.5 text-xs text-[var(--color-muted-foreground)] mb-1">
-                <Clock className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+          {/* Responsive Quick Metrics Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+            <div className="p-3.5 bg-[var(--color-background)] border border-[var(--color-border)] rounded-xl min-w-0">
+              <div className="flex items-center gap-1.5 text-xs text-[var(--color-muted-foreground)] mb-1.5">
+                <Clock className="w-3.5 h-3.5 text-[var(--color-accent)] shrink-0" />
                 <span>Format</span>
               </div>
-              <span className="text-sm font-semibold text-white">3 Scenario Questions</span>
+              <span className="text-xs sm:text-sm font-semibold text-white leading-snug block break-words">3 Scenario Questions</span>
             </div>
-            <div className="p-3.5 bg-[var(--color-background)] border border-[var(--color-border)] rounded-lg">
-              <div className="flex items-center gap-1.5 text-xs text-[var(--color-muted-foreground)] mb-1">
-                <HelpCircle className="w-3.5 h-3.5 text-emerald-400" />
+            <div className="p-3.5 bg-[var(--color-background)] border border-[var(--color-border)] rounded-xl min-w-0">
+              <div className="flex items-center gap-1.5 text-xs text-[var(--color-muted-foreground)] mb-1.5">
+                <HelpCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                 <span>Options</span>
               </div>
-              <span className="text-sm font-semibold text-white">4 Choices + Rationale</span>
+              <span className="text-xs sm:text-sm font-semibold text-white leading-snug block break-words">4 Choices + Rationale</span>
             </div>
-            <div className="p-3.5 bg-[var(--color-background)] border border-[var(--color-border)] rounded-lg">
-              <div className="flex items-center gap-1.5 text-xs text-[var(--color-muted-foreground)] mb-1">
-                <Award className="w-3.5 h-3.5 text-amber-400" />
+            <div className="p-3.5 bg-[var(--color-background)] border border-[var(--color-border)] rounded-xl min-w-0">
+              <div className="flex items-center gap-1.5 text-xs text-[var(--color-muted-foreground)] mb-1.5">
+                <Award className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                 <span>Rewards</span>
               </div>
-              <span className="text-sm font-semibold text-white">Up to +100 XP</span>
+              <span className="text-xs sm:text-sm font-semibold text-white leading-snug block break-words">Up to +100 XP</span>
             </div>
           </div>
 
@@ -448,10 +455,16 @@ export default function WeeklyTestPage() {
                     {evaluation.is_correct ? "Correct Answer!" : "Incorrect"}
                   </span>
                 </div>
-                <div className="flex items-center gap-1.5 text-xs font-medium bg-black/40 px-2.5 py-1 rounded-md border border-white/10 text-amber-300">
-                  <Award className="w-3.5 h-3.5 text-amber-400" />
-                  <span>+{evaluation.xp_earned} XP Earned</span>
-                </div>
+                {evaluation.is_correct && evaluation.xp_earned > 0 ? (
+                  <div className="flex items-center gap-1.5 text-xs font-medium bg-black/40 px-2.5 py-1 rounded-md border border-emerald-500/20 text-amber-300">
+                    <Award className="w-3.5 h-3.5 text-amber-400" />
+                    <span>+{evaluation.xp_earned} XP Earned</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 text-xs font-medium bg-black/40 px-2.5 py-1 rounded-md border border-rose-500/20 text-rose-300">
+                    <span>0 XP Earned</span>
+                  </div>
+                )}
               </div>
 
               <div className="text-xs leading-relaxed text-neutral-300 whitespace-pre-wrap pt-1">

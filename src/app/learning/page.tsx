@@ -17,6 +17,8 @@ export default function LearningLogPage() {
   const [success, setSuccess] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  const [refreshWarning, setRefreshWarning] = useState<string | null>(null);
+
   const pendingTasks = currentUser?.tasks?.filter(t => t.status === "pending") || [];
 
   const toggleTask = (id: number) => {
@@ -26,9 +28,10 @@ export default function LearningLogPage() {
   };
 
   const handleSubmit = async () => {
-    if (!currentUser) return;
+    if (!currentUser || isSubmitting) return;
     setIsSubmitting(true);
     setSubmitError(null);
+    setRefreshWarning(null);
 
     const parsedHours = Math.max(0, parseFloat(hours) || 0);
     const parsedMinutes = Math.max(0, parseFloat(minutes) || 0);
@@ -41,8 +44,15 @@ export default function LearningLogPage() {
     }
 
     try {
-      await logDailyLearning(totalHours, topics, reflection, completedTaskIds);
-      setSuccess(true);
+      const res = await logDailyLearning(totalHours, topics, reflection, completedTaskIds);
+      if (res?.success) {
+        if (res.warning) {
+          setRefreshWarning(res.warning);
+        }
+        setSuccess(true);
+      } else {
+        setSubmitError("Failed to submit learning log. Please try again.");
+      }
     } catch (e) {
       setSubmitError((e as Error).message || "Failed to submit. Please try again.");
     } finally {
@@ -58,6 +68,13 @@ export default function LearningLogPage() {
         </div>
         <h1 className="text-3xl font-medium tracking-tight text-white">Day {currentUser?.streak} Logged!</h1>
         <p className="text-[var(--color-muted-foreground)]">Your XP and streak have been updated.</p>
+        
+        {refreshWarning && (
+          <div className="p-4 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-300 text-sm max-w-lg mx-auto">
+            {refreshWarning}
+          </div>
+        )}
+
         <button 
           onClick={() => router.push("/")}
           className="bg-white text-black text-sm font-medium px-6 py-2 rounded-md hover:bg-gray-200 transition-colors"
