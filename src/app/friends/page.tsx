@@ -1,11 +1,36 @@
 "use client";
 
+import { useState } from "react";
 import { useStore } from "@/store/useStore";
-import { Flame, Trophy } from "lucide-react";
-import { motion } from "framer-motion";
+import { Flame, UserPlus, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function FriendsPage() {
-  const { friends } = useStore();
+  const { friends, addFriend } = useStore();
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [inviteStatus, setInviteStatus] = useState<string | null>(null);
+
+  const handleSendInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inviteEmail.trim()) return;
+    setIsSubmitting(true);
+    setInviteStatus(null);
+    try {
+      await addFriend(inviteEmail);
+      setInviteStatus("Invitation sent successfully!");
+      setTimeout(() => {
+        setShowInviteModal(false);
+        setInviteEmail("");
+        setInviteStatus(null);
+      }, 1500);
+    } catch (err: unknown) {
+      setInviteStatus(err instanceof Error ? err.message : "Could not send invite.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in duration-500 pb-12">
@@ -25,8 +50,12 @@ export default function FriendsPage() {
             <h2 className="text-sm font-medium text-[var(--color-muted-foreground)] uppercase tracking-wider">
               Learning Network
             </h2>
-            <button className="text-sm text-white hover:underline decoration-[var(--color-border)] underline-offset-4">
-              + Invite Friend
+            <button 
+              onClick={() => setShowInviteModal(true)}
+              className="text-sm text-white flex items-center gap-1.5 hover:text-[var(--color-accent)] transition-colors"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>+ Invite Friend</span>
             </button>
           </div>
 
@@ -36,7 +65,7 @@ export default function FriendsPage() {
             transition={{ staggerChildren: 0.1 }}
             className="space-y-4"
           >
-            {friends.map((friend, i) => (
+            {friends.map((friend) => (
               <motion.div 
                 key={friend.id}
                 initial={{ opacity: 0, y: 10 }}
@@ -109,6 +138,72 @@ export default function FriendsPage() {
         </div>
 
       </div>
+
+      {/* Invite Modal */}
+      <AnimatePresence>
+        {showInviteModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-6 space-y-6 shadow-2xl relative"
+            >
+              <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-4">
+                <h3 className="text-lg font-medium text-white flex items-center gap-2">
+                  <UserPlus className="w-5 h-5 text-[var(--color-accent)]" />
+                  Invite a Friend
+                </h3>
+                <button 
+                  onClick={() => setShowInviteModal(false)}
+                  className="p-1 text-[var(--color-muted-foreground)] hover:text-white rounded-md"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {inviteStatus && (
+                <div className={`p-3 rounded-md text-xs border ${inviteStatus.includes("success") ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-red-500/10 border-red-500/20 text-red-400"}`}>
+                  {inviteStatus}
+                </div>
+              )}
+
+              <form onSubmit={handleSendInvite} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-[var(--color-muted-foreground)] uppercase tracking-wider mb-2">
+                    Friend&apos;s Email Address
+                  </label>
+                  <input 
+                    type="email" 
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    placeholder="friend@example.com"
+                    className="w-full bg-[var(--color-background)] border border-[var(--color-border)] rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[var(--color-accent)]"
+                    required
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button 
+                    type="button" 
+                    onClick={() => setShowInviteModal(false)}
+                    className="flex-1 py-2.5 border border-[var(--color-border)] rounded-lg text-sm font-medium text-[var(--color-muted-foreground)] hover:text-white"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit" 
+                    disabled={isSubmitting}
+                    className="flex-1 py-2.5 bg-white text-black font-semibold rounded-lg text-sm hover:bg-neutral-200 transition-colors disabled:opacity-50"
+                  >
+                    {isSubmitting ? "Sending..." : "Send Invite"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

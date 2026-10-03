@@ -2,10 +2,10 @@
 
 import { Trophy, CheckCircle2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { getWeeklyWinner } from "@/lib/api";
+import { getWeeklyWinner, WeeklyWinner } from "@/lib/api";
 
 export default function WeeklyWinnerPage() {
-  const [winner, setWinner] = useState<any>(null);
+  const [winner, setWinner] = useState<WeeklyWinner | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -14,8 +14,8 @@ export default function WeeklyWinnerPage() {
       .then((data) => {
         setWinner(data);
       })
-      .catch((err) => {
-        setError(err.message);
+      .catch((err: unknown) => {
+        setError((err as Error).message);
       })
       .finally(() => {
         setLoading(false);

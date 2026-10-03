@@ -1,41 +1,52 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useStore } from "@/store/useStore";
+import { useStore, User, Task } from "@/store/useStore";
 import { getAdminUsers, getAdminTasks, updateUserRole, reviewTask, rejectTask } from "@/lib/api";
 import { Shield, Users, CheckSquare, X, Check, Award, AlertCircle } from "lucide-react";
+
+export type AdminTask = Task & {
+  name: string;
+  username: string;
+};
 
 export default function AdminDashboard() {
   const currentUser = useStore((state) => state.currentUser);
   const [activeTab, setActiveTab] = useState<"tasks" | "users">("tasks");
-  const [users, setUsers] = useState<any[]>([]);
-  const [tasks, setTasks] = useState<any[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [tasks, setTasks] = useState<AdminTask[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const fetchData = async () => {
-    setIsLoading(true);
-    setError("");
-    try {
-      if (activeTab === "users") {
-        const data = await getAdminUsers();
-        setUsers(data);
-      } else {
-        const data = await getAdminTasks();
-        setTasks(data);
-      }
-    } catch (err: any) {
-      setError(err.message || "Failed to fetch data");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
-    if (currentUser?.role === "admin") {
-      fetchData();
-    }
-  }, [activeTab, currentUser]);
+    if (currentUser?.role !== "admin") return;
+
+    let isSubscribed = true;
+
+    const loadAdminData = async () => {
+      setIsLoading(true);
+      setError("");
+      try {
+        if (activeTab === "users") {
+          const data = await getAdminUsers();
+          if (isSubscribed) setUsers(data);
+        } else {
+          const data = await getAdminTasks();
+          if (isSubscribed) setTasks(data);
+        }
+      } catch (err: unknown) {
+        if (isSubscribed) setError((err as Error).message || "Failed to fetch data");
+      } finally {
+        if (isSubscribed) setIsLoading(false);
+      }
+    };
+
+    loadAdminData();
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [activeTab, currentUser?.role]);
 
   if (!currentUser) return null;
   
@@ -53,8 +64,8 @@ export default function AdminDashboard() {
     try {
       await reviewTask(taskId);
       setTasks(tasks.filter(t => t.id !== taskId));
-    } catch (err: any) {
-      alert(err.message || "Failed to approve task");
+    } catch (err: unknown) {
+      alert((err as Error).message || "Failed to approve task");
     }
   };
 
@@ -62,8 +73,8 @@ export default function AdminDashboard() {
     try {
       await rejectTask(taskId);
       setTasks(tasks.filter(t => t.id !== taskId));
-    } catch (err: any) {
-      alert(err.message || "Failed to reject task");
+    } catch (err: unknown) {
+      alert((err as Error).message || "Failed to reject task");
     }
   };
 
@@ -71,9 +82,9 @@ export default function AdminDashboard() {
     try {
       const newRole = currentRole === "admin" ? "user" : "admin";
       await updateUserRole(userId, newRole);
-      setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
-    } catch (err: any) {
-      alert(err.message || "Failed to update role");
+      setUsers(users.map(u => u.id === userId ? { ...u, role: newRole as "admin" | "user" } : u));
+    } catch (err: unknown) {
+      alert((err as Error).message || "Failed to update role");
     }
   };
 

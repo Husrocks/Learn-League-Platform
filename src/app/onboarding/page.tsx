@@ -92,7 +92,7 @@ export default function OnboardingPage() {
                 <div className="w-16 h-16 rounded-full bg-[var(--color-accent)]/20 flex items-center justify-center mb-2">
                   <Trophy className="w-8 h-8 text-[var(--color-accent)]" />
                 </div>
-                <h1 className="text-3xl font-medium tracking-tight">You're ready.</h1>
+                <h1 className="text-3xl font-medium tracking-tight">You&apos;re ready.</h1>
                 <p className="text-[var(--color-muted-foreground)] max-w-sm">
                   Your goal is set. Commit to {hours} of {goal} every day. The leaderboard is waiting.
                 </p>

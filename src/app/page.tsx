@@ -1,13 +1,27 @@
 "use client";
 
-import { useStore } from "@/store/useStore";
-import { format } from "date-fns";
-import { CheckCircle2, Circle, Flame, ArrowRight, Play, Trophy, Brain, ChevronUp, ChevronDown } from "lucide-react";
-import { useState, useEffect, useMemo } from "react";
-import { getMe, getLeaderboard } from "@/lib/api";
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { useStore, Task, Friend, LearningLog } from "@/store/useStore";
+import { format, startOfWeek, addDays, isSameDay } from "date-fns";
+import { CheckCircle2, Circle, Flame, ArrowRight, Trophy, Brain, ChevronUp, ChevronDown } from "lucide-react";
+import { useState, useEffect, useMemo, useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
+import { getLeaderboard } from "@/lib/api";
+import { AreaChart, Area, Tooltip, ResponsiveContainer } from "recharts";
 
-function DashboardTaskItem({ task }: { task: any }) {
+function parseLogDate(dateStr: string): Date {
+  if (!dateStr) return new Date(NaN);
+  const cleanStr = dateStr.split("T")[0];
+  const parts = cleanStr.split("-");
+  if (parts.length === 3) {
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    const d = parseInt(parts[2], 10);
+    return new Date(y, m, d);
+  }
+  return new Date(dateStr);
+}
+
+function DashboardTaskItem({ task }: { task: Task }) {
   const [expanded, setExpanded] = useState(false);
   const isDone = task.status === 'completed' || task.status === 'reviewed';
 
@@ -46,31 +60,21 @@ function DashboardTaskItem({ task }: { task: any }) {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const storeUser = useStore((state) => state.currentUser);
   const storeFriends = useStore((state) => state.friends);
   
-  const [liveUser, setLiveUser] = useState<any>(storeUser);
-  const [liveFriends, setLiveFriends] = useState<any[]>(storeFriends);
-  const [isLoading, setIsLoading] = useState(true);
+  const [liveFriends, setLiveFriends] = useState<Friend[]>(storeFriends);
+  const [isLoading, setIsLoading] = useState(!storeUser);
   const [showPreviousTasks, setShowPreviousTasks] = useState(false);
 
   const today = new Date();
+  const liveUser = storeUser;
 
   useEffect(() => {
-    // Stale-While-Revalidate: show cached data instantly if available
-    if (storeUser && storeFriends && storeFriends.length > 0) {
-      setIsLoading(false);
-    }
-
     const fetchLiveDashboard = async () => {
       try {
-        // Fetch User and Leaderboard in parallel to prevent waterfall loading
-        const [user, friends] = await Promise.all([
-          getMe(),
-          getLeaderboard()
-        ]);
-        
-        setLiveUser(user);
+        const friends = await getLeaderboard();
         setLiveFriends(friends);
       } catch (e) {
         console.error("Failed to load dashboard data", e);
@@ -79,7 +83,42 @@ export default function DashboardPage() {
       }
     };
     fetchLiveDashboard();
-  }, [storeUser, storeFriends]);
+  }, []);
+
+  const weeklyXpData = useMemo(() => {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const logs = liveUser?.logs || [];
+    const now = new Date();
+    // Calculate exact start of the current week (Monday)
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+
+    return days.map((day, idx) => {
+      const dayDate = addDays(weekStart, idx);
+      // Filter logs strictly matching the specific date of this day in the active week
+      const dayLogs = logs.filter((log: LearningLog) => {
+        if (!log.date) return false;
+        const logDate = parseLogDate(log.date);
+        return isSameDay(logDate, dayDate);
+      });
+
+      // Accumulate authentic backend XP earned for the target day
+      const dayXp = dayLogs.reduce((acc: number, l: LearningLog) => {
+        const xp = l.xp_earned !== undefined && l.xp_earned !== null 
+          ? l.xp_earned 
+          : Math.round((l.hours_studied || 0) * 50);
+        return acc + xp;
+      }, 0);
+
+      return {
+        name: day,
+        xp: dayXp
+      };
+    });
+  }, [liveUser?.logs]);
+
+  const hasWeeklyLogs = useMemo(() => {
+    return weeklyXpData.some((d) => d.xp > 0);
+  }, [weeklyXpData]);
 
   const monthConsistency = useMemo(() => {
     const now = new Date();
@@ -115,7 +154,7 @@ export default function DashboardPage() {
   const displayTasks = useMemo(() => {
     if (!liveUser?.tasks) return [];
     const todayString = new Date().toDateString();
-    return liveUser.tasks.filter((task: any) => {
+    return liveUser.tasks.filter((task: Task) => {
       const isToday = task.date_assigned 
         ? new Date(task.date_assigned).toDateString() === todayString
         : false;
@@ -124,9 +163,17 @@ export default function DashboardPage() {
       if (showPreviousTasks) return true;
       return isToday || !isDone;
     });
-  }, [liveUser?.tasks, showPreviousTasks]);
+  }, [liveUser, showPreviousTasks]);
 
-  if (isLoading || !liveUser) return null;
+  const isMounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
+
+  const [nowTimestamp] = useState(() => Date.now());
+
+  if (!isMounted || isLoading || !liveUser) return null;
 
   return (
     <div className="space-y-12 animate-in fade-in duration-700">
@@ -166,15 +213,7 @@ export default function DashboardPage() {
             
             <div className="h-32 w-full relative z-10 -ml-2">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={[
-                  { name: 'Mon', xp: Math.max(0, (liveUser.total_xp || 0) - 600) },
-                  { name: 'Tue', xp: Math.max(0, (liveUser.total_xp || 0) - 450) },
-                  { name: 'Wed', xp: Math.max(0, (liveUser.total_xp || 0) - 300) },
-                  { name: 'Thu', xp: Math.max(0, (liveUser.total_xp || 0) - 200) },
-                  { name: 'Fri', xp: Math.max(0, (liveUser.total_xp || 0) - 100) },
-                  { name: 'Sat', xp: Math.max(0, (liveUser.total_xp || 0) - 50) },
-                  { name: 'Sun', xp: liveUser.total_xp || 0 },
-                ]}>
+                <AreaChart data={weeklyXpData}>
                   <defs>
                     <linearGradient id="colorXp" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="var(--color-accent)" stopOpacity={0.3}/>
@@ -189,6 +228,11 @@ export default function DashboardPage() {
                 </AreaChart>
               </ResponsiveContainer>
             </div>
+            {!hasWeeklyLogs && (
+              <p className="text-xs text-[var(--color-muted-foreground)] italic relative z-10 text-center">
+                No activity logged for this week yet. Submit your daily learning to build your XP graph.
+              </p>
+            )}
           </div>
 
           <div className="glass-panel rounded-lg p-6 space-y-6">
@@ -204,7 +248,7 @@ export default function DashboardPage() {
             
             <div className="space-y-3">
               {displayTasks.length > 0 ? (
-                displayTasks.map((task: any, i: number) => (
+                displayTasks.map((task: Task, i: number) => (
                   <DashboardTaskItem key={i} task={task} />
                 ))
               ) : (
@@ -213,10 +257,10 @@ export default function DashboardPage() {
             </div>
 
             <button 
-              onClick={() => window.location.href = '/learning'}
+              onClick={() => router.push('/learning')}
               className="w-full flex items-center justify-center gap-2 py-3 bg-[var(--color-surface-hover)] hover:bg-[var(--color-border)] text-white text-sm font-medium rounded-md transition-colors"
             >
-              Log Today's Learning
+              Log Today&apos;s Learning
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -281,7 +325,7 @@ export default function DashboardPage() {
               <div className="text-sm text-[var(--color-muted-foreground)]">Available Now</div>
             </div>
             <button 
-              onClick={() => window.location.href = '/test'}
+              onClick={() => router.push('/test')}
               className="w-full flex items-center justify-center gap-2 py-2 bg-[var(--color-accent)]/10 text-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-white text-sm font-medium rounded-md transition-colors border border-[var(--color-accent)]/20"
             >
               <Brain className="w-4 h-4 fill-current" />
@@ -297,9 +341,9 @@ export default function DashboardPage() {
             </div>
             
             <div className="space-y-1">
-              {[...liveFriends].sort((a, b) => (b.total_xp || b.weeklyScore) - (a.total_xp || a.weeklyScore)).slice(0, 3).map((friend, i) => {
+              {[...liveFriends].sort((a, b) => (b.total_xp || b.weekly_score || 0) - (a.total_xp || a.weekly_score || 0)).slice(0, 3).map((friend, i) => {
                 const friendActive = friend.last_seen
-                  ? (Date.now() - new Date(friend.last_seen).getTime()) < 5 * 60 * 1000
+                  ? (nowTimestamp - new Date(friend.last_seen).getTime()) < 5 * 60 * 1000
                   : false;
                 return (
                   <div key={friend.id} className="flex items-center justify-between p-2 rounded-md hover:bg-[var(--color-surface-hover)] transition-colors">
@@ -316,13 +360,13 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-medium">{friend.total_xp || friend.weeklyScore} XP</div>
+                      <div className="text-sm font-medium">{friend.total_xp || friend.weekly_score || 0} XP</div>
                     </div>
                   </div>
                 );
               })}
               
-              <div className="flex items-center justify-between p-2 rounded-md bg-[var(--color-surface)] border border-[var(--color-border)] mt-2 cursor-pointer hover:bg-[var(--color-surface-hover)] transition-colors" onClick={() => window.location.href = '/leaderboard'}>
+              <div className="flex items-center justify-between p-2 rounded-md bg-[var(--color-surface)] border border-[var(--color-border)] mt-2 cursor-pointer hover:bg-[var(--color-surface-hover)] transition-colors" onClick={() => router.push('/leaderboard')}>
                 <div className="flex items-center gap-3 min-w-0">
                   <span className="text-xs font-medium text-[var(--color-accent)] w-4 shrink-0">--</span>
                   <span className="text-sm font-medium text-white truncate">You</span>

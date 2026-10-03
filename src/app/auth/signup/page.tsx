@@ -23,8 +23,8 @@ export default function SignupPage() {
     try {
       await register({ name, username, email, password, learning_goal: "General" });
       router.push("/auth/login?registered=true");
-    } catch (err: any) {
-      setError(err.message || "Registration failed. Try again.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Registration failed. Try again.");
     } finally {
       setLoading(false);
     }

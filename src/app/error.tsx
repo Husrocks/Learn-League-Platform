@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
 
@@ -13,17 +14,19 @@ import { AlertTriangle, RefreshCw, Home } from "lucide-react";
  * backend 500), this component renders instead of a blank white screen.
  *
  * The `reset` function re-mounts the failed component tree, allowing
- * the user to recover without a full page reload.
+ * users to try again without a full page reload.
  *
  * Reference: https://nextjs.org/docs/app/building-your-application/routing/error-handling
  */
-export default function GlobalError({
+export default function ErrorBoundary({
   error,
   reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const router = useRouter();
+
   useEffect(() => {
     // Log to console so developers can see the error details.
     // Replace this with a proper error tracking service (e.g., Sentry) when ready.
@@ -99,7 +102,7 @@ export default function GlobalError({
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => (window.location.href = "/")}
+              onClick={() => router.push("/")}
               className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm border transition-colors"
               style={{
                 borderColor: "rgba(255,255,255,0.08)",

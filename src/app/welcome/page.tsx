@@ -40,14 +40,17 @@ export default function WelcomePage() {
               Start a learning group
               <ArrowRight className="w-4 h-4" />
             </Link>
-            <button className="px-6 py-3 rounded-md text-base font-medium text-[var(--color-muted-foreground)] hover:text-white transition-colors">
+            <button 
+              onClick={() => document.getElementById('features-section')?.scrollIntoView({ behavior: 'smooth' })}
+              className="px-6 py-3 rounded-md text-base font-medium text-[var(--color-muted-foreground)] hover:text-white transition-colors"
+            >
               See how it works
             </button>
           </div>
         </section>
 
         {/* Realistic UI Mock / Hero Visual */}
-        <section className="relative rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-2 md:p-8 overflow-hidden shadow-2xl shadow-[var(--color-accent)]/5 animate-in fade-in duration-1000 delay-300">
+        <section id="features-section" className="relative rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-2 md:p-8 overflow-hidden shadow-2xl shadow-[var(--color-accent)]/5 animate-in fade-in duration-1000 delay-300">
           <div className="absolute top-0 left-1/4 w-1/2 h-px bg-gradient-to-r from-transparent via-[var(--color-accent)] to-transparent opacity-50" />
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 opacity-90">

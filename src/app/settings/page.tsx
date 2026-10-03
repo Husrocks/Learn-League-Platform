@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useStore, User, Friend, Task } from "@/store/useStore";
+import { useRouter } from "next/navigation";
+import { useStore, Task } from "@/store/useStore";
 import { Settings, Shield, Plus, UserMinus, CheckCircle2, Clock, CheckSquare, ChevronDown, ChevronUp, XCircle, BookOpen } from "lucide-react";
 
 function ReviewTaskItem({ task, userId }: { task: Task, userId: number }) {
@@ -42,14 +43,13 @@ function ReviewTaskItem({ task, userId }: { task: Task, userId: number }) {
 }
 
 export default function SettingsPage() {
+  const router = useRouter();
   const { 
     currentUser, 
     friends, 
     addFriend, 
     removeFriend, 
     assignTask, 
-    reviewTask,
-    rejectTask,
     logout,
     setCurrentUser
   } = useStore();
@@ -105,8 +105,8 @@ export default function SettingsPage() {
       const updatedUser = await updateProfile({ name, learning_goal: learningGoal });
       setCurrentUser(updatedUser);
       setSaveMessage("Profile saved successfully.");
-    } catch (err: any) {
-      setSaveMessage(err.message || "Failed to save profile.");
+    } catch (err: unknown) {
+      setSaveMessage((err as Error).message || "Failed to save profile.");
     } finally {
       setIsSaving(false);
     }
@@ -211,7 +211,7 @@ export default function SettingsPage() {
               <button 
                 onClick={() => {
                   logout();
-                  window.location.href = "/auth/login";
+                  router.push("/auth/login");
                 }}
                 className="text-red-500 font-medium text-sm hover:underline"
               >
@@ -331,7 +331,7 @@ export default function SettingsPage() {
                       
                       return (
                         <div key={user.id} className="space-y-2">
-                          <h4 className="text-xs font-semibold text-white">{user.name}'s Pending Reviews</h4>
+                          <h4 className="text-xs font-semibold text-white">{user.name}&apos;s Pending Reviews</h4>
                           {completedTasks.map(task => (
                             <ReviewTaskItem key={task.id} task={task} userId={user.id} />
                           ))}
@@ -369,7 +369,7 @@ export default function SettingsPage() {
                     
                     return (
                       <div key={user.id} className="space-y-3">
-                        <h4 className="text-sm font-semibold text-white border-b border-[var(--color-border)] pb-2">{user.name}'s Logs</h4>
+                        <h4 className="text-sm font-semibold text-white border-b border-[var(--color-border)] pb-2">{user.name}&apos;s Logs</h4>
                         <div className="space-y-3">
                           {sortedLogs.map(log => (
                             <div key={log.id} className="bg-[var(--color-background)] border border-[var(--color-border)] rounded-md p-4 space-y-3">
@@ -385,7 +385,7 @@ export default function SettingsPage() {
                               
                               <div>
                                 <p className="text-xs text-[var(--color-muted-foreground)] uppercase tracking-wider mb-1">Reflection</p>
-                                <p className="text-sm text-[var(--color-muted)] whitespace-pre-wrap italic">"{log.reflection}"</p>
+                                <p className="text-sm text-[var(--color-muted)] whitespace-pre-wrap italic">&quot;{log.reflection}&quot;</p>
                               </div>
                             </div>
                           ))}

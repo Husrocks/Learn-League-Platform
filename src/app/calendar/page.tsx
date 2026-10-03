@@ -1,17 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useStore } from "@/store/useStore";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Flame } from "lucide-react";
 
 export default function CalendarPage() {
   const { currentUser } = useStore();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const isMounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   if (!currentUser || !isMounted) return null;
 
