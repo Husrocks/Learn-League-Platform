@@ -2,10 +2,10 @@
 
 import { useStore, Task, Friend, LearningLog } from "@/store/useStore";
 import { format, startOfWeek, addDays, isSameDay } from "date-fns";
-import { CheckCircle2, Circle, Flame, ArrowRight, Trophy, Brain, ChevronUp, ChevronDown } from "lucide-react";
+import { CheckCircle2, Circle, Flame, ArrowRight, Trophy, Brain, ChevronUp, ChevronDown, Compass } from "lucide-react";
 import { useState, useEffect, useMemo, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { getLeaderboard } from "@/lib/api";
+import { getLeaderboard, getMyRoadmapPlan, UserRoadmapPlan } from "@/lib/api";
 import { AreaChart, Area, Tooltip, ResponsiveContainer } from "recharts";
 
 function parseLogDate(dateStr: string): Date {
@@ -68,14 +68,20 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(!storeUser);
   const [showPreviousTasks, setShowPreviousTasks] = useState(false);
 
+  const [activePlan, setActivePlan] = useState<UserRoadmapPlan | null>(null);
+
   const today = new Date();
   const liveUser = storeUser;
 
   useEffect(() => {
     const fetchLiveDashboard = async () => {
       try {
-        const friends = await getLeaderboard();
+        const [friends, plan] = await Promise.all([
+          getLeaderboard(),
+          getMyRoadmapPlan().catch(() => null),
+        ]);
         setLiveFriends(friends);
+        setActivePlan(plan);
       } catch (e) {
         console.error("Failed to load dashboard data", e);
       } finally {
@@ -234,6 +240,55 @@ export default function DashboardPage() {
               </p>
             )}
           </div>
+
+          {/* Active Roadmap Card */}
+          {activePlan ? (
+            <div className="glass-panel rounded-lg p-5 border border-blue-500/20 bg-gradient-to-r from-blue-950/20 via-[var(--color-surface)] to-[var(--color-surface)] space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-semibold text-blue-400">
+                  <Compass className="w-4 h-4" />
+                  <span>Active Roadmap: {activePlan.roadmap_title}</span>
+                </div>
+                <button
+                  onClick={() => router.push("/roadmap/plan")}
+                  className="text-xs text-[var(--color-accent)] hover:underline inline-flex items-center gap-1 font-medium"
+                >
+                  View Plan <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs text-[var(--color-muted-foreground)]">
+                  <span>{activePlan.completed_tasks} of {activePlan.total_tasks} milestones complete</span>
+                  <span className="font-semibold text-white">{activePlan.progress_percentage}%</span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-blue-500 to-emerald-400 rounded-full transition-all duration-500"
+                    style={{ width: `${activePlan.progress_percentage}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-lg p-4 border border-[var(--color-border)] bg-[var(--color-surface)] flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0">
+                  <Compass className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-semibold text-white">Looking for a structured learning path?</h4>
+                  <p className="text-[11px] text-[var(--color-muted-foreground)]">Follow a curated roadmap with AI-generated weekly milestones.</p>
+                </div>
+              </div>
+              <button
+                onClick={() => router.push("/roadmap")}
+                className="shrink-0 px-3 py-1.5 rounded-md bg-[var(--color-surface-hover)] hover:bg-[var(--color-accent)] text-xs text-white font-medium transition-colors"
+              >
+                Explore Roadmaps
+              </button>
+            </div>
+          )}
 
           <div className="glass-panel rounded-lg p-6 space-y-6">
             <div className="flex items-center justify-between">

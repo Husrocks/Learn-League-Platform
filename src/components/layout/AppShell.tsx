@@ -17,12 +17,14 @@ import {
   Shield,
   MoreHorizontal,
   LogOut,
-  X
+  X,
+  Compass,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { name: "Dashboard", href: "/", icon: Home },
+  { name: "Roadmaps", href: "/roadmap", icon: Compass },
   { name: "My Learning", href: "/learning", icon: BookOpen },
   { name: "Daily Tasks", href: "/tasks", icon: CheckSquare },
   { name: "Friends", href: "/friends", icon: Users },
@@ -94,6 +96,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isAdmin = currentUser.role === "admin";
 
   const SECONDARY_MORE_NAV = [
+    { name: "Roadmaps", href: "/roadmap", icon: Compass },
     { name: "AI Test", href: "/test", icon: Brain },
     { name: "Friends", href: "/friends", icon: Users },
     { name: "Calendar", href: "/calendar", icon: Calendar },

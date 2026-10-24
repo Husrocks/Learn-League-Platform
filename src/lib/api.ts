@@ -363,3 +363,121 @@ export async function updateUserRole(userId: number | string, role: string): Pro
   });
   return handleResponse<{ message: string }>(res);
 }
+
+// --- Roadmap Feature Endpoints ---
+
+export type TopicItem = {
+  slug: string;
+  title: string;
+  phase: number;
+  estimated_hours: number;
+  prerequisites: string[];
+};
+
+export type RoadmapSummary = {
+  id: number;
+  slug: string;
+  title: string;
+  description?: string;
+  category: string;
+  source_url?: string;
+  topic_count: number;
+};
+
+export type RoadmapDetail = {
+  id: number;
+  slug: string;
+  title: string;
+  description?: string;
+  category: string;
+  source_url?: string;
+  topics: TopicItem[];
+};
+
+export type RoadmapTask = {
+  id: number;
+  plan_id: number;
+  user_id: number;
+  topic_slug: string;
+  title: string;
+  description?: string;
+  week_number: number;
+  due_date: string;
+  status: "pending" | "completed" | "skipped";
+  xp_value: number;
+  created_at?: string;
+  completed_at?: string;
+};
+
+export type UserRoadmapPlan = {
+  id: number;
+  user_id: number;
+  roadmap_id: number;
+  time_horizon: "3m" | "6m" | "12m" | string;
+  start_date: string;
+  target_end_date: string;
+  weekly_hours: number;
+  pacing: "steady" | "front-loaded" | "back-loaded" | string;
+  focus_topics?: string[];
+  status: "active" | "completed" | "archived";
+  roadmap_title: string;
+  roadmap_slug: string;
+  source_url?: string;
+  total_tasks: number;
+  completed_tasks: number;
+  progress_percentage: number;
+  tasks: RoadmapTask[];
+};
+
+export async function getRoadmaps(): Promise<RoadmapSummary[]> {
+  const res = await safeFetch(`${API_URL}/roadmap/`, {
+    headers: authHeaders(),
+  });
+  return handleResponse<RoadmapSummary[]>(res);
+}
+
+export async function getRoadmapDetail(slug: string): Promise<RoadmapDetail> {
+  const res = await safeFetch(`${API_URL}/roadmap/${slug}`, {
+    headers: authHeaders(),
+  });
+  return handleResponse<RoadmapDetail>(res);
+}
+
+export async function createRoadmapPlan(payload: {
+  roadmap_id: number;
+  time_horizon: string;
+  weekly_hours?: number;
+  pacing?: string;
+  focus_topics?: string[];
+}): Promise<UserRoadmapPlan> {
+  const res = await safeFetch(`${API_URL}/roadmap/plans`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+  return handleResponse<UserRoadmapPlan>(res);
+}
+
+export async function getMyRoadmapPlan(): Promise<UserRoadmapPlan | null> {
+  const res = await safeFetch(`${API_URL}/roadmap/plans/me`, {
+    headers: authHeaders(),
+  });
+  if (res.status === 404) return null;
+  return handleResponse<UserRoadmapPlan | null>(res);
+}
+
+export async function completeRoadmapTask(taskId: number): Promise<RoadmapTask> {
+  const res = await safeFetch(`${API_URL}/roadmap/tasks/${taskId}/complete`, {
+    method: "PUT",
+    headers: authHeaders(),
+  });
+  return handleResponse<RoadmapTask>(res);
+}
+
+export async function archiveRoadmapPlan(planId: number): Promise<{ message: string; plan_id: number }> {
+  const res = await safeFetch(`${API_URL}/roadmap/plans/${planId}/archive`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  return handleResponse<{ message: string; plan_id: number }>(res);
+}
