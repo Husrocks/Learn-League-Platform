@@ -56,14 +56,14 @@ export default function LoginPage() {
           <div className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-xs font-medium text-[var(--color-muted-foreground)] mb-1 uppercase tracking-wider">
-                Email Address
+                Email Address or Username
               </label>
               <input 
                 id="email" 
-                type="email" 
+                type="text" 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com (admin@learnleague.com for Admin)"
+                placeholder="admin@learnleague.local or admin"
                 className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--color-accent)] transition-colors"
                 required
               />
