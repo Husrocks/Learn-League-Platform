@@ -5,7 +5,7 @@ import {
   validateRuntimeSchema,
 } from "./schemas";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://learn-league-backend.vercel.app";
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || "https://learn-league-backend.vercel.app").replace(/\/$/, "");
 
 export const AUTH_EXPIRED_EVENT = "learnleague:auth-expired";
 
